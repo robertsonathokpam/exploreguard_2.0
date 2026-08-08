@@ -1,6 +1,6 @@
 import { auth, db } from '../firebase-config.js';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";//login, logout, signup functions are here
 
 // Render Lucide Icons
 lucide.createIcons();
@@ -15,7 +15,7 @@ window.showTab = (tab) => {
   document.querySelectorAll('.tab')[tab === 'login' ? 0 : 1].classList.add('active');
   document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
   document.getElementById('signup-form').style.display = tab === 'signup' ? 'block' : 'none';
-  
+
   // Hide error messages when switching tabs
   document.getElementById('login-error').style.display = 'none';
   document.getElementById('signup-error').style.display = 'none';
@@ -27,7 +27,7 @@ window.loginUser = async () => {
   const password = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-error');
   const errText = document.getElementById('login-err-text');
-  
+
   if (!email || !password) {
     errText.textContent = 'Please fill in all fields.';
     errEl.style.display = 'flex';
@@ -52,7 +52,7 @@ window.signupUser = async () => {
   const errText = document.getElementById('signup-err-text');
   const sucEl = document.getElementById('signup-success');
   const sucText = document.getElementById('signup-suc-text');
-  
+
   if (!name || !email || !password) {
     errText.textContent = 'Please fill in all fields.';
     errEl.style.display = 'flex';
@@ -70,14 +70,14 @@ window.signupUser = async () => {
     sucEl.style.display = 'none';
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
-    
+
     // Save user profile to Firestore (CREATE operation)
     await setDoc(doc(db, 'users', cred.user.uid), {
       name: name,
       email: email,
       createdAt: new Date().toISOString()
     });
-    
+
     sucText.textContent = 'Account created successfully! Redirecting...';
     sucEl.style.display = 'flex';
     setTimeout(() => window.location.href = 'dashboard.html', 1200);

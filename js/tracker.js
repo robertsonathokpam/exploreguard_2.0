@@ -14,23 +14,25 @@ onAuthStateChanged(auth, (user) => {
   const link = `${window.location.origin}/view-location.html?uid=${user.uid}`;
   document.getElementById('share-link').value = link;
 });
+// share location toggle 
+//this will start sharing location when the toggle is on and stop sharing when the toggle is off
 
 window.toggleSharing = async () => {
   const isOn = document.getElementById('share-toggle').checked;
   const status = document.getElementById('status-msg');
 
-  if (isOn) {
+  if (isOn) { // if toggle is on then start sharing location
     status.innerHTML = `<i data-lucide="loader" class="animate-spin" style="width:16px; height:16px; display:inline;"></i> Handshaking GPS satellite grid...`;
     status.className = 'status';
     lucide.createIcons();
-    
+
     if (!navigator.geolocation) {
       status.innerHTML = `<i data-lucide="alert-circle" style="width:16px; height:16px; display:inline;"></i> Local hardware does not support GPS sensors.`;
       status.className = 'status error';
       lucide.createIcons();
       return;
     }
-    
+
     // Start watching GPS position — updates every time you move
     watchId = navigator.geolocation.watchPosition(
       async (pos) => {
@@ -39,11 +41,11 @@ window.toggleSharing = async () => {
         document.getElementById('lng-val').textContent = longitude.toFixed(5);
         document.getElementById('accuracy-val').textContent = Math.round(accuracy) + 'm';
         document.getElementById('updated-val').textContent = new Date().toLocaleTimeString();
-        
+
         status.innerHTML = `<i data-lucide="wifi" style="width:16px; height:16px; display:inline;"></i> Granular tracking active — streaming coordinates live.`;
         status.className = 'status active';
         lucide.createIcons();
-        
+
         document.getElementById('share-link-box').style.display = 'block';
 
         // Show map
@@ -74,11 +76,11 @@ window.toggleSharing = async () => {
     // Stop sharing — DELETE location from Firestore
     if (watchId) navigator.geolocation.clearWatch(watchId);
     if (currentUser) await deleteDoc(doc(db, 'locations', currentUser.uid));
-    
+
     status.innerHTML = `<i data-lucide="info" style="width:16px; height:16px; display:inline;"></i> Telemetry stream stopped. Sensor details deleted.`;
     status.className = 'status';
     lucide.createIcons();
-    
+
     document.getElementById('share-link-box').style.display = 'none';
     document.getElementById('map-frame').style.display = 'none';
     document.getElementById('lat-val').textContent = '--';

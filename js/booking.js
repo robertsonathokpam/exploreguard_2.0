@@ -53,6 +53,7 @@ window.saveBooking = async () => {
     }, 4000);
     
   } catch (e) {
-    alert('Booking request failed. Please check network connection.');
+    console.error("Error saving booking:", e);
+    alert('Booking request failed: ' + e.message);
   }
 };
