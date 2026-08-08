@@ -99,7 +99,7 @@ Lightweight view page shared with trusted family or rescue coordinators.
 
 ---
 
-## 🚀 Setting Up & Running Locally
+##  Setting Up & Running Locally
 
 Since ExploreGuard is built on a serverless architecture, it runs entirely in the browser without requiring a heavy server-side setup.
 
