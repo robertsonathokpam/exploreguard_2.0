@@ -1,4 +1,4 @@
-#  ExploreGuard — Smart Serverless Tourist Companion
+#  ExploreGuard : Smart Serverless Tourist Companion
 
 ExploreGuard is a premium, responsive serverless web application designed to act as an active safety, climate advisory, and tracking companion for travelers navigating Northeast India. Built on a serverless architecture with real-time sync databases, it empowers travelers with critical tools such as meteorological warnings, booking simulation systems, instant emergency contact dialing, and peer-to-peer GPS coordinate telemetry sharing.
 
