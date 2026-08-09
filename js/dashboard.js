@@ -73,10 +73,11 @@ async function loadBookings(uid) {
     // Re-trigger icon rendering
     lucide.createIcons();
   } catch (e) {
+    console.error("Error loading bookings:", e);
     list.innerHTML = `
       <div class="empty">
         <i data-lucide="alert-triangle" style="color:var(--danger); width:36px; height:36px;"></i>
-        <span>Failed to load active bookings. Please refresh.</span>
+        <span>Failed to load bookings: ${e.message}</span>
       </div>`;
     lucide.createIcons();
   }
