@@ -3,11 +3,34 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ExploreGuard — Location Tracker</title>
+  <title>ExploreGuard — GPS & Kumbh Mela Crowd Telemetry</title>
   <!-- Premium Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS & DaisyUI CDN (Scoped & Safe) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#e1f5ee',
+              100: '#bce8da',
+              500: '#1D9E75',
+              600: '#157A5A',
+              700: '#0e553e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Linked Modular Stylesheets -->
@@ -19,67 +42,233 @@
   <a class="nav-logo" href="index.html">
     <i data-lucide="map" style="stroke-width:2.5px;"></i> ExploreGuard
   </a>
-  <a class="back-btn" href="dashboard.html"><i data-lucide="arrow-left" style="width:16px;"></i> Dashboard</a>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <span class="badge badge-info gap-1 text-xs font-semibold py-2 px-3 text-white hidden sm:inline-flex">
+      <i data-lucide="users" style="width:12px; height:12px;"></i> VBYLD 2027 Crowd Telemetry
+    </span>
+    <a class="back-btn" href="dashboard.html"><i data-lucide="arrow-left" style="width:16px;"></i> Dashboard</a>
+  </div>
 </nav>
 
-<div class="container">
+<div class="container" style="max-width: 960px;">
   <div class="header-section">
-    <h2>GPS Journey Tracker</h2>
-    <p class="subtitle">Consent-driven live coordinate telemetry for security sharing</p>
+    <h2>Telemetry & Crowd Safety Portal</h2>
+    <p class="subtitle">Real-time GPS coordinate broadcasting & Kumbh Mela mass-gathering telemetry</p>
   </div>
 
-  <div class="consent-box">
-    <i data-lucide="shield-check"></i>
-    <span><strong>Privacy Guaranteed:</strong> Satellite tracking triggers exclusively on active toggle authorization. System data clears immediately upon toggle deactivation. We operate on Zero Background Logging standards.</span>
+  <!-- Mode Switcher Tabs -->
+  <div class="tabs tabs-boxed bg-white/80 p-1.5 rounded-2xl shadow-sm border border-slate-200/80 mb-6 flex gap-2">
+    <a class="tab tab-active flex-1 py-3 text-sm font-bold gap-2 transition-all rounded-xl" id="tab-gps" onclick="window.switchTrackerMode('gps')">
+      <i data-lucide="navigation" style="width:16px; height:16px;"></i> Personal GPS Journey Tracker
+    </a>
+    <a class="tab flex-1 py-3 text-sm font-bold gap-2 transition-all rounded-xl" id="tab-crowd" onclick="window.switchTrackerMode('crowd')">
+      <i data-lucide="users" style="width:16px; height:16px;"></i> Kumbh Mela Crowd Safety Mode
+    </a>
   </div>
 
-  <div class="card">
-    <div class="toggle-row">
-      <span class="toggle-label"><i data-lucide="navigation"></i> Enable Location Telemetry</span>
-      <label class="toggle">
-        <input type="checkbox" id="share-toggle" onchange="toggleSharing()"/>
-        <span class="slider"></span>
-      </label>
+  <!-- TAB 1: GPS JOURNEY TRACKER (Preserved Intact) -->
+  <div id="panel-gps">
+    <div class="consent-box">
+      <i data-lucide="shield-check"></i>
+      <span><strong>Privacy Guaranteed:</strong> Satellite tracking triggers exclusively on active toggle authorization. System data clears immediately upon toggle deactivation. We operate on Zero Background Logging standards.</span>
     </div>
 
-    <div class="location-info">
-      <div class="info-box">
-        <i data-lucide="compass"></i>
-        <div class="info-val" id="lat-val">--</div>
-        <div class="info-key">Latitude</div>
+    <div class="card">
+      <div class="toggle-row">
+        <span class="toggle-label"><i data-lucide="navigation"></i> Enable Location Telemetry</span>
+        <label class="toggle">
+          <input type="checkbox" id="share-toggle" onchange="toggleSharing()"/>
+          <span class="slider"></span>
+        </label>
       </div>
-      <div class="info-box">
-        <i data-lucide="compass" style="transform: rotate(90deg);"></i>
-        <div class="info-val" id="lng-val">--</div>
-        <div class="info-key">Longitude</div>
+
+      <div class="location-info">
+        <div class="info-box">
+          <i data-lucide="compass"></i>
+          <div class="info-val" id="lat-val">--</div>
+          <div class="info-key">Latitude</div>
+        </div>
+        <div class="info-box">
+          <i data-lucide="compass" style="transform: rotate(90deg);"></i>
+          <div class="info-val" id="lng-val">--</div>
+          <div class="info-key">Longitude</div>
+        </div>
+        <div class="info-box">
+          <i data-lucide="activity"></i>
+          <div class="info-val" id="accuracy-val">--</div>
+          <div class="info-key">Accuracy</div>
+        </div>
+        <div class="info-box">
+          <i data-lucide="clock"></i>
+          <div class="info-val" id="updated-val">--</div>
+          <div class="info-key">Last Updated</div>
+        </div>
       </div>
-      <div class="info-box">
-        <i data-lucide="activity"></i>
-        <div class="info-val" id="accuracy-val">--</div>
-        <div class="info-key">Accuracy</div>
+
+      <p class="status" id="status-msg">
+        <i data-lucide="info" style="width:16px; height:16px; display:inline;"></i> Set switch to active to initialize satellite tracking.
+      </p>
+
+      <div class="share-link-box" id="share-link-box" style="display:none">
+        <p>Send this link to a trusted contact for live map visualization:</p>
+        <div class="link-row">
+          <input type="text" id="share-link" readonly/>
+          <button class="copy-btn" onclick="copyLink()">
+            <i data-lucide="copy" style="width:14px;"></i> Copy Link
+          </button>
+        </div>
       </div>
-      <div class="info-box">
-        <i data-lucide="clock"></i>
-        <div class="info-val" id="updated-val">--</div>
-        <div class="info-key">Last Updated</div>
-      </div>
+
+      <iframe id="map-frame" style="display:none" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <!-- TAB 2: KUMBH MELA & MASS-GATHERING CROWD SAFETY MODE (New Feature) -->
+  <div id="panel-crowd" style="display:none;">
+    <!-- Sector Selector Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+      <button type="button" class="sector-btn text-left p-4 rounded-2xl bg-white/90 border-2 border-emerald-500 shadow-sm transition-all" id="btn-sector-a" onclick="window.selectSector('sector-a')">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-bold text-slate-500 uppercase">Sector A</span>
+          <span class="badge badge-warning badge-sm font-bold text-white" id="chip-badge-sector-a">2.3 p/m²</span>
+        </div>
+        <div class="font-extrabold text-slate-800 text-sm">Sangam Bathing Ghat</div>
+        <div class="text-[11px] text-slate-500 mt-0.5">Capacity: 12,000</div>
+      </button>
+
+      <button type="button" class="sector-btn text-left p-4 rounded-2xl bg-white/80 border-2 border-transparent hover:border-slate-300 shadow-sm transition-all" id="btn-sector-b" onclick="window.selectSector('sector-b')">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-bold text-slate-500 uppercase">Sector B</span>
+          <span class="badge badge-error badge-sm font-bold text-white" id="chip-badge-sector-b">4.8 p/m²</span>
+        </div>
+        <div class="font-extrabold text-slate-800 text-sm">Transit Hub & Bridges</div>
+        <div class="text-[11px] text-slate-500 mt-0.5">Capacity: 18,750</div>
+      </button>
+
+      <button type="button" class="sector-btn text-left p-4 rounded-2xl bg-white/80 border-2 border-transparent hover:border-slate-300 shadow-sm transition-all" id="btn-sector-c" onclick="window.selectSector('sector-c')">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-bold text-slate-500 uppercase">Relief Zone</span>
+          <span class="badge badge-success badge-sm font-bold text-white" id="chip-badge-sector-c">1.2 p/m²</span>
+        </div>
+        <div class="font-extrabold text-slate-800 text-sm">Relief Camp & Kitchen</div>
+        <div class="text-[11px] text-slate-500 mt-0.5">Capacity: 28,000</div>
+      </button>
+
+      <button type="button" class="sector-btn text-left p-4 rounded-2xl bg-white/80 border-2 border-transparent hover:border-slate-300 shadow-sm transition-all" id="btn-sector-d" onclick="window.selectSector('sector-d')">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-bold text-slate-500 uppercase">Medical Route</span>
+          <span class="badge badge-success badge-sm font-bold text-white" id="chip-badge-sector-d">0.8 p/m²</span>
+        </div>
+        <div class="font-extrabold text-slate-800 text-sm">Emergency Medical Arterial</div>
+        <div class="text-[11px] text-slate-500 mt-0.5">Capacity: 4,500</div>
+      </button>
     </div>
 
-    <p class="status" id="status-msg">
-      <i data-lucide="info" style="width:16px; height:16px; display:inline;"></i> Set switch to active to initialize satellite tracking.
-    </p>
+    <!-- Active Sector Telemetry Console -->
+    <div class="card" style="padding: 2rem 2.25rem;">
+      <div class="flex justify-between items-start flex-wrap gap-4 pb-4 border-b border-slate-200/80 mb-5">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full" id="sector-tag">SECTOR A</span>
+            <span class="text-xs text-slate-500 font-medium" id="sector-location-desc">Triveni Sangam Confluence</span>
+          </div>
+          <h3 class="text-2xl font-black text-slate-900 mt-1" id="sector-title">Sector A: Sangam Holy Bathing Ghat</h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="badge badge-warning text-white font-extrabold text-sm p-3 flex items-center gap-1.5 shadow-sm" id="stampede-risk-badge">
+            <i data-lucide="alert-triangle" style="width:14px; height:14px;"></i> MODERATE STAMPEDE RISK
+          </span>
+        </div>
+      </div>
 
-    <div class="share-link-box" id="share-link-box" style="display:none">
-      <p>Send this link to a trusted contact for live map visualization:</p>
-      <div class="link-row">
-        <input type="text" id="share-link" readonly/>
-        <button class="copy-btn" onclick="copyLink()">
-          <i data-lucide="copy" style="width:14px;"></i> Copy Link
-        </button>
+      <!-- Quick Preset Surge Scenarios -->
+      <div class="mb-5 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/70">
+        <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
+          <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+            <i data-lucide="sliders" style="width:14px; height:14px; color:var(--primary);"></i> Hackathon Crowd Simulation Presets:
+          </span>
+          <span class="badge badge-ghost text-xs font-semibold" id="crowd-scenario-tag">Standard Monitored Telemetry</span>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          <button type="button" class="btn btn-xs btn-outline" onclick="window.applyCrowdPreset('normal')">Normal Pilgrimage Flow</button>
+          <button type="button" class="btn btn-xs btn-outline btn-warning" onclick="window.applyCrowdPreset('shahi-snan')">Shahi Snan Ghat Surge</button>
+          <button type="button" class="btn btn-xs btn-outline btn-error" onclick="window.applyCrowdPreset('pontoon-bottleneck')">Pontoon Bridge Choke Surge</button>
+          <button type="button" class="btn btn-xs btn-outline btn-success" onclick="window.applyCrowdPreset('camp-dispersal')">Camp Dispersal Flow</button>
+        </div>
+      </div>
+
+      <!-- Interactive Headcount Slider -->
+      <div class="mb-6 bg-white/70 p-4 rounded-2xl border border-slate-200/80">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs font-bold text-slate-800">
+            Sector Headcount: <strong class="text-emerald-700 text-sm font-black" id="headcount-display">13,800 pilgrims</strong>
+          </span>
+          <span class="text-xs text-slate-500 font-semibold">Area: <strong id="area-display">6,000 m²</strong></span>
+        </div>
+        <input type="range" min="1000" max="45000" step="500" value="13800" id="crowd-slider" oninput="window.onCrowdSliderChange(this.value)" class="range range-warning range-sm w-full" />
+        <div class="w-full flex justify-between text-[11px] px-1 text-slate-400 font-semibold mt-1">
+          <span>1,000 (Sparse)</span>
+          <span>15,000 (Moderate)</span>
+          <span>30,000 (Dense)</span>
+          <span>45,000 (Critical Surge)</span>
+        </div>
+      </div>
+
+      <!-- Crowd Metrics Quad Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <div class="bg-white/90 p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Pedestrian Density</div>
+          <div class="flex items-baseline gap-1.5 my-1">
+            <span class="text-3xl font-black text-slate-900" id="density-val">2.30</span>
+            <span class="text-xs font-bold text-slate-600">p/m²</span>
+          </div>
+          <div class="text-[11px] font-bold text-amber-600" id="fruin-los-tag">Fruin LoS: Level D (Constrained)</div>
+        </div>
+
+        <div class="bg-white/90 p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Inflow vs Outflow Rate</div>
+          <div class="text-lg font-black text-slate-900 my-1">
+            <span class="text-emerald-700" id="inflow-val">420</span> <span class="text-xs font-normal text-slate-400">in</span> / 
+            <span class="text-slate-700" id="outflow-val">390</span> <span class="text-xs font-normal text-slate-400">out/min</span>
+          </div>
+          <div class="text-[11px] font-semibold text-slate-600">Ratio: <strong id="flow-ratio-val">1.08x</strong></div>
+        </div>
+
+        <div class="bg-white/90 p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Capacity Margin</div>
+          <div class="text-2xl font-black text-slate-900 my-1" id="capacity-percent">115%</div>
+          <progress id="capacity-progress" class="progress progress-warning w-full h-1.5" value="115" max="100"></progress>
+        </div>
+
+        <div class="bg-white/90 p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Bottleneck State</div>
+          <div class="text-base font-black my-1" id="bottleneck-status-label" style="color:#f59e0b;">
+            Monitoring Thresholds
+          </div>
+          <div class="text-[11px] text-slate-500 font-medium">Auto-QRF Dispatch Ready</div>
+        </div>
+      </div>
+
+      <!-- Automated Bottleneck Alert Banner -->
+      <div id="bottleneck-alert-card" class="alert-box alert-warn mb-4" style="border-radius:16px;">
+        <i data-lucide="alert-triangle" id="bottleneck-icon" style="width:24px; height:24px; flex-shrink:0;"></i>
+        <div class="flex flex-col gap-0.5">
+          <span class="font-black text-sm" id="bottleneck-headline">BOTTLENECK MONITORING ACTIVE</span>
+          <span class="text-xs leading-relaxed" id="bottleneck-subtext">Crowd movement rate is steady. Inflow matches outbound spillways.</span>
+        </div>
+      </div>
+
+      <!-- Safe Decongestion Routing Box -->
+      <div class="bg-white/95 rounded-2xl p-4 border-l-4 border-emerald-600 shadow-sm">
+        <div class="flex items-center gap-2 mb-1.5">
+          <i data-lucide="compass" style="width:16px; height:16px; color:var(--primary);"></i>
+          <span class="text-xs font-black uppercase text-slate-800 tracking-wider">Automated Decongestion Routing Protocol</span>
+        </div>
+        <p class="text-xs text-slate-700 leading-relaxed font-medium" id="decongestion-routing-text">
+          Flow rates optimal. All primary evacuation routes (Eastern High Bund Pathway, Ghat Exit Escalier #2, Ambulance Pier 1) remain clear.
+        </p>
       </div>
     </div>
-
-    <iframe id="map-frame" style="display:none" allowfullscreen></iframe>
   </div>
 </div>
 

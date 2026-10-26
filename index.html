@@ -3,11 +3,34 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ExploreGuard — Smart Tourist Companion</title>
+  <title>ExploreGuard — AI Disaster Mitigation, Kumbh Mela & Health Delivery</title>
   <!-- Premium Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS & DaisyUI CDN (Scoped & Safe) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#e1f5ee',
+              100: '#bce8da',
+              500: '#1D9E75',
+              600: '#157A5A',
+              700: '#0e553e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Linked Modular Stylesheets -->
@@ -21,91 +44,92 @@
   </a>
   <div class="nav-links">
     <a href="#features">Features</a>
-    <a href="alerts.html">Alerts</a>
-    <a href="safety.html">Safety</a>
+    <a href="alerts.html">AI Risk Engine</a>
+    <a href="tracker.html">Crowd Telemetry</a>
+    <a href="safety.html">Medical Triage</a>
   </div>
-  <a class="nav-cta" href="login.html">Get Started</a>
+  <a class="nav-cta" href="login.html">Launch Console</a>
 </nav>
 
 <section class="hero">
   <div class="hero-badge">
-    <i data-lucide="sparkles" style="width:16px; height:16px;"></i> Smart · Safe · Seamless Travel in Northeast India
+    <i data-lucide="sparkles" style="width:16px; height:16px;"></i> Hack for Social Cause (VBYLD 2027) · Disaster Mitigation, Kumbh Mela & Health Service Delivery
   </div>
-  <h1>Your complete <span>tourist companion</span><br/>for Northeast India</h1>
-  <p>Book transport, track your journey, get real-time safety alerts, and access emergency contacts — all in one free, premium platform.</p>
+  <h1>Smart <span>disaster mitigation</span> &<br/>mass-gathering crowd safety</h1>
+  <p>Protecting vulnerable transit corridors across Northeast India and high-density pilgrimage zones with real-time AI landslide risk prediction, crowd stampede telemetry, and golden-hour emergency medical triage.</p>
   <div class="hero-btns">
-    <a class="btn-primary" href="login.html">Start Exploring <i data-lucide="arrow-right"></i></a>
-    <a class="btn-secondary" href="#features">See Features <i data-lucide="arrow-down"></i></a>
+    <a class="btn-primary" href="dashboard.html">Access Platform <i data-lucide="arrow-right"></i></a>
+    <a class="btn-secondary" href="#features">Explore Innovations <i data-lucide="arrow-down"></i></a>
   </div>
 </section>
 
 <div class="stats">
   <div class="stat">
     <div class="stat-num">50+</div>
-    <div class="stat-label">Destinations Covered</div>
+    <div class="stat-label">Corridors & Sectors</div>
   </div>
   <div class="stat">
-    <div class="stat-num">24/7</div>
-    <div class="stat-label">Safety Monitoring</div>
+    <div class="stat-num">&lt; 20m</div>
+    <div class="stat-label">Golden-Hour Window</div>
   </div>
   <div class="stat">
-    <div class="stat-num">8</div>
-    <div class="stat-label">Manipur Districts</div>
+    <div class="stat-num">4 Sectors</div>
+    <div class="stat-label">Kumbh Mela Telemetry</div>
   </div>
   <div class="stat">
     <div class="stat-num">100%</div>
-    <div class="stat-label">Free to Use</div>
+    <div class="stat-label">Serverless & Offline-Ready</div>
   </div>
 </div>
 
 <section class="features" id="features">
   <div class="section-header">
-    <span class="section-label">Core Features</span>
-    <h2 class="section-title">Everything a traveler needs</h2>
-    <p class="section-sub">From the moment you plan your trip to the moment you return home safely.</p>
+    <span class="section-label">Hackathon Innovation Highlights</span>
+    <h2 class="section-title">Engineered for real-world humanitarian impact</h2>
+    <p class="section-sub">Combining multi-sensor meteorological feeds, geomorphological terrain modeling, pedestrian density dynamics, and clinical triage protocols.</p>
   </div>
   <div class="features-grid">
     <div class="feature-card">
-      <div class="f-icon-box">
-        <i data-lucide="plane"></i>
-      </div>
-      <div class="f-title">Unified Ticket Booking</div>
-      <div class="f-desc">Book flights, trains, and cabs from one unified dashboard. Save, manage, and retrieve all your bookings instantly.</div>
-    </div>
-    <div class="feature-card">
-      <div class="f-icon-box">
+      <div class="f-icon-box" style="background:#e1f5ee; color:#1D9E75;">
         <i data-lucide="cloud-lightning"></i>
       </div>
-      <div class="f-title">Live Weather & Safety Alerts</div>
-      <div class="f-desc">Real-time weather telemetry for any city in Northeast India. Intelligent safety warnings for storms, floods, and poor driving visibility.</div>
+      <div class="f-title">AI Landslide & Disaster Predictor</div>
+      <div class="f-desc">Ingests live OpenWeather telemetry + Manipur highway terrain weights (NH-2/NH-37 & flood basins) to calculate real-time probability scores and evacuation advisories.</div>
+    </div>
+    <div class="feature-card">
+      <div class="f-icon-box" style="background:#e0f2fe; color:#0284c7;">
+        <i data-lucide="users"></i>
+      </div>
+      <div class="f-title">Kumbh Mela Crowd Telemetry</div>
+      <div class="f-desc">Sector-by-sector crowd density monitoring (persons/m²), automated chokepoint bottleneck triggers, and dynamic decongestion rerouting protocols.</div>
+    </div>
+    <div class="feature-card">
+      <div class="f-icon-box" style="background:#fee2e2; color:#ef4444;">
+        <i data-lucide="heart-pulse"></i>
+      </div>
+      <div class="f-title">AI Golden-Hour Medical Triage</div>
+      <div class="f-desc">Clinical START/Manchester triage for stampede trauma, heatstroke, and landslide casualties. Renders offline first-aid steps and logs GPS SOS dispatches to Firestore.</div>
     </div>
     <div class="feature-card">
       <div class="f-icon-box">
         <i data-lucide="map-pin"></i>
       </div>
-      <div class="f-title">Consent-Based Tracker</div>
-      <div class="f-desc">Share your live, granular GPS coordinates with trusted emergency contacts only when you want to. Stop sharing at any time.</div>
+      <div class="f-title">Consent-Driven GPS Tracker</div>
+      <div class="f-desc">Privacy-first hardware coordinate telemetry with zero background logging. Instant emergency link sharing and cloud coordinate clearance upon toggle deactivation.</div>
     </div>
     <div class="feature-card">
       <div class="f-icon-box">
         <i data-lucide="shield"></i>
       </div>
-      <div class="f-title">Local Emergency Contacts</div>
-      <div class="f-desc">Highly localized, district-wise directory of police stations, medical hubs, and search teams. Tap to dial instantly.</div>
+      <div class="f-title">Localized Emergency Directory</div>
+      <div class="f-desc">Granular district-level database of police, tertiary trauma centers, fire commands, and disaster rescue teams with one-tap dialing.</div>
     </div>
     <div class="feature-card">
       <div class="f-icon-box">
-        <i data-lucide="alert-triangle"></i>
+        <i data-lucide="plane"></i>
       </div>
-      <div class="f-title">SOS Emergency Button</div>
-      <div class="f-desc">Immediate, one-tap trigger calling the national emergency response system 112. Always accessible in critical times.</div>
-    </div>
-    <div class="feature-card">
-      <div class="f-icon-box">
-        <i data-lucide="lock"></i>
-      </div>
-      <div class="f-title">Secure Authentication</div>
-      <div class="f-desc">Rest assured your travel data is perfectly confidential, secured robustly by global-standard Firebase authentication protocols.</div>
+      <div class="f-title">Unified Transit & Permit Console</div>
+      <div class="f-desc">Centralized transit permit bookings and active boarding passes synchronized via Cloud Firestore real-time NoSQL storage.</div>
     </div>
   </div>
 </section>
@@ -114,12 +138,11 @@
   <a class="footer-logo" href="index.html">
     <i data-lucide="map"></i> ExploreGuard
   </a>
-  <p>Built for safer, smarter tourism in Northeast India · © 2026</p>
-  <p style="font-size: 13px; opacity: 0.5;">Secure · Free · Traveler First</p>
+  <p>VBYLD 2027 Hack for Social Cause · Theme: Disaster Mitigation, Kumbh Mela & Health Service Delivery</p>
+  <p style="font-size: 13px; opacity: 0.6;">Serverless · Cloud Firestore · OpenWeather Telemetry · MIT License</p>
 </footer>
 
 <script>
-  // Dynamic Lucide Icon generation
   lucide.createIcons();
 </script>
 </body>

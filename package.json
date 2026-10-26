@@ -1,0 +1,21 @@
+{
+  "name": "exploreguard",
+  "version": "2.0.0",
+  "description": "ExploreGuard - AI Disaster Mitigation, Kumbh Mela Crowd Telemetry & Golden-Hour Health Service Delivery (VBYLD 2027)",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/test_risk_engine.js"
+  },
+  "keywords": [
+    "disaster-mitigation",
+    "landslide-prediction",
+    "kumbh-mela",
+    "crowd-safety",
+    "emergency-triage",
+    "health-service-delivery",
+    "firebase",
+    "openweather"
+  ],
+  "author": "ExploreGuard Team",
+  "license": "MIT"
+}

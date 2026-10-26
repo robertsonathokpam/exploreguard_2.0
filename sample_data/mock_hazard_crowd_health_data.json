@@ -1,0 +1,241 @@
+{
+  "project": "ExploreGuard - Disaster Mitigation, Kumbh Mela & Health Service Delivery",
+  "hackathon": "Hack for Social Cause (VBYLD 2027)",
+  "version": "2.0.0",
+  "generated_at": "2026-10-26T22:30:00Z",
+  "weather_telemetry_scenarios": [
+    {
+      "scenario_id": "monsoon-cloudburst-nh37",
+      "corridor": "nh-37",
+      "corridor_name": "Manipur NH-37 (Imphal - Jiribam Landslide Corridor)",
+      "city": "Noney",
+      "rainfall_mm_h": 68.5,
+      "humidity_percent": 96,
+      "wind_speed_km_h": 48.0,
+      "atmospheric_pressure_hpa": 998.2,
+      "expected_risk": "Critical",
+      "expected_landslide_probability": 92
+    },
+    {
+      "scenario_id": "cyclonic-depression-nh2",
+      "corridor": "nh-2",
+      "corridor_name": "Manipur NH-2 (Imphal - Kohima Montane Pass)",
+      "city": "Kangpokpi",
+      "rainfall_mm_h": 42.0,
+      "humidity_percent": 89,
+      "wind_speed_km_h": 54.0,
+      "atmospheric_pressure_hpa": 1002.5,
+      "expected_risk": "Critical",
+      "expected_landslide_probability": 78
+    },
+    {
+      "scenario_id": "valley-flash-flood-thoubal",
+      "corridor": "imphal-valley",
+      "corridor_name": "Imphal Valley Flood Plains (Thoubal & Bishnupur)",
+      "city": "Thoubal",
+      "rainfall_mm_h": 52.0,
+      "humidity_percent": 92,
+      "wind_speed_km_h": 22.0,
+      "atmospheric_pressure_hpa": 1006.0,
+      "expected_risk": "Critical",
+      "expected_flood_probability": 88
+    },
+    {
+      "scenario_id": "clear-sky-transit",
+      "corridor": "nh-37",
+      "corridor_name": "Manipur NH-37 (Imphal - Jiribam Landslide Corridor)",
+      "city": "Imphal",
+      "rainfall_mm_h": 0.0,
+      "humidity_percent": 55,
+      "wind_speed_km_h": 12.0,
+      "atmospheric_pressure_hpa": 1014.2,
+      "expected_risk": "Low",
+      "expected_landslide_probability": 18
+    }
+  ],
+  "terrain_vulnerability_weights": [
+    {
+      "id": "nh-37",
+      "name": "Manipur NH-37 (Imphal - Jiribam Landslide Corridor)",
+      "slope_weight": 0.90,
+      "soil_fragility": 0.88,
+      "history_weight": 0.95,
+      "flood_vulnerability": 0.45,
+      "designated_evacuation_shelters": [
+        "Noney Higher Secondary Evacuation Centre (Elev: 840m)",
+        "Tamenglong Transit Camp #2 (Elev: 1220m)"
+      ]
+    },
+    {
+      "id": "nh-2",
+      "name": "Manipur NH-2 (Imphal - Kohima Montane Pass)",
+      "slope_weight": 0.78,
+      "soil_fragility": 0.72,
+      "history_weight": 0.80,
+      "flood_vulnerability": 0.35,
+      "designated_evacuation_shelters": [
+        "Kangpokpi Youth Hall High Point",
+        "Senapati District Sports Complex"
+      ]
+    },
+    {
+      "id": "imphal-valley",
+      "name": "Imphal Valley River Basin & Flood Plains",
+      "slope_weight": 0.18,
+      "soil_fragility": 0.55,
+      "history_weight": 0.75,
+      "flood_vulnerability": 0.95,
+      "designated_evacuation_shelters": [
+        "Khuman Lampak Stadium High Grounds",
+        "Bishnupur Multi-Purpose Hall"
+      ]
+    }
+  ],
+  "kumbh_crowd_telemetry_sectors": [
+    {
+      "sector_id": "sector-a",
+      "name": "Sector A: Sangam Holy Bathing Ghat",
+      "area_sq_m": 6000,
+      "safe_capacity": 12000,
+      "current_headcount": 13800,
+      "density_p_per_sqm": 2.30,
+      "inflow_per_min": 420,
+      "outflow_per_min": 390,
+      "stampede_risk": "Moderate",
+      "status": "Warning - Slow Egress",
+      "active_evacuation_corridors": [
+        "Eastern High Bund Pathway",
+        "Ghat Exit Escalier #2",
+        "Ambulance Pier 1"
+      ]
+    },
+    {
+      "sector_id": "sector-b",
+      "name": "Sector B: Transit Hub & Pontoon Bridges",
+      "area_sq_m": 7500,
+      "safe_capacity": 18750,
+      "current_headcount": 36000,
+      "density_p_per_sqm": 4.80,
+      "inflow_per_min": 890,
+      "outflow_per_min": 410,
+      "stampede_risk": "Critical",
+      "status": "Bottleneck Triggered - Shockwave Hazard",
+      "active_evacuation_corridors": [
+        "Pontoon Bridge 2 One-Way Spillway",
+        "North Ring Corridor",
+        "Rail Shuttle Bay C"
+      ]
+    },
+    {
+      "sector_id": "sector-c",
+      "name": "Relief Camp Zone & Community Kitchen",
+      "area_sq_m": 14000,
+      "safe_capacity": 28000,
+      "current_headcount": 16500,
+      "density_p_per_sqm": 1.18,
+      "inflow_per_min": 220,
+      "outflow_per_min": 210,
+      "stampede_risk": "Safe",
+      "status": "Fluid Movement - High Capacity Margin",
+      "active_evacuation_corridors": [
+        "Grand Trunk Main Arterial",
+        "Sector 5 West Gate"
+      ]
+    },
+    {
+      "sector_id": "sector-d",
+      "name": "Medical Emergency Corridor & Field PHC",
+      "area_sq_m": 4500,
+      "safe_capacity": 4500,
+      "current_headcount": 3600,
+      "density_p_per_sqm": 0.80,
+      "inflow_per_min": 95,
+      "outflow_per_min": 110,
+      "stampede_risk": "Safe",
+      "status": "Clear Arterial - Emergency Vehicles Priority",
+      "active_evacuation_corridors": [
+        "Trauma Center Fast-Track",
+        "Helipad Access Artery"
+      ]
+    }
+  ],
+  "emergency_medical_triage_cases": [
+    {
+      "case_id": "TRG-CASE-001",
+      "condition": "stampede-trauma",
+      "patient_descriptor": "Male 44y caught in Pontoon Bridge 2 bottleneck",
+      "symptoms": "Chest crush injury, shallow breathing, cyanosis of lips",
+      "consciousness": "altered",
+      "severe_bleeding": false,
+      "breathing_difficulty": true,
+      "expected_triage_priority": "RED",
+      "target_golden_hour_mins": 20,
+      "recommended_action": "Elevate torso 30-45 deg, high-flow O2, prepare for tube thoracostomy."
+    },
+    {
+      "case_id": "TRG-CASE-002",
+      "condition": "heatstroke-dehydration",
+      "patient_descriptor": "Female 62y queuing under direct midday sun at Sangam Ghat",
+      "symptoms": "Core temp 40.5C, anhidrosis, disorientation, extreme tachycardia",
+      "consciousness": "altered",
+      "severe_bleeding": false,
+      "breathing_difficulty": false,
+      "expected_triage_priority": "YELLOW",
+      "target_golden_hour_mins": 45,
+      "recommended_action": "Relocate to shaded mist tent, axillary ice packs, rapid IV crystalloid."
+    },
+    {
+      "case_id": "TRG-CASE-003",
+      "condition": "landslide-injury",
+      "patient_descriptor": "Bus driver struck by falling boulders along NH-37 Awangkhul sector",
+      "symptoms": "Cranial laceration with active arterial bleed, suspected cervical spine fracture",
+      "consciousness": "unconscious",
+      "severe_bleeding": true,
+      "breathing_difficulty": true,
+      "expected_triage_priority": "RED",
+      "target_golden_hour_mins": 15,
+      "recommended_action": "Strict C-spine collar immobilization, pressure dressing, immediate medevac."
+    },
+    {
+      "case_id": "TRG-CASE-004",
+      "condition": "minor-sprain-abrasion",
+      "patient_descriptor": "Pilgrim slipped on wet ghat stairs",
+      "symptoms": "Right ankle inversion sprain, skin abrasions, normal vitals",
+      "consciousness": "conscious",
+      "severe_bleeding": false,
+      "breathing_difficulty": false,
+      "expected_triage_priority": "GREEN",
+      "target_golden_hour_mins": 120,
+      "recommended_action": "Apply cold compression bandage, elevation, antiseptic dressing."
+    }
+  ],
+  "health_camps_and_phcs": [
+    {
+      "id": "phc-kumbh-sector4",
+      "name": "Kumbh Sector 4 Field Hospital & Resuscitation Center",
+      "coordinates": { "latitude": 25.4312, "longitude": 81.8845 },
+      "capacity_beds": 50,
+      "icu_ventilators": 8,
+      "trauma_bay": true,
+      "emergency_contact": "+91-532-250100"
+    },
+    {
+      "id": "phc-jnims-imphal",
+      "name": "JNIMS Tertiary Trauma Center (Imphal East)",
+      "coordinates": { "latitude": 24.8081, "longitude": 93.9534 },
+      "capacity_beds": 350,
+      "icu_ventilators": 40,
+      "trauma_bay": true,
+      "emergency_contact": "0385-2416041"
+    },
+    {
+      "id": "phc-noney-relief",
+      "name": "NH-37 Noney Disaster Mobile Health Unit",
+      "coordinates": { "latitude": 24.7894, "longitude": 93.6012 },
+      "capacity_beds": 20,
+      "icu_ventilators": 2,
+      "trauma_bay": true,
+      "emergency_contact": "03874-234100"
+    }
+  ]
+}

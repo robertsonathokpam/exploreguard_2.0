@@ -3,11 +3,34 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ExploreGuard — Safety</title>
+  <title>ExploreGuard — Emergency Medical Triage & Safety</title>
   <!-- Premium Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS & DaisyUI CDN (Scoped & Safe) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#e1f5ee',
+              100: '#bce8da',
+              500: '#1D9E75',
+              600: '#157A5A',
+              700: '#0e553e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Linked Modular Stylesheets -->
@@ -19,13 +42,18 @@
   <a class="nav-logo" href="index.html">
     <i data-lucide="map" style="stroke-width:2.5px;"></i> ExploreGuard
   </a>
-  <a class="back-btn" href="dashboard.html"><i data-lucide="arrow-left" style="width:16px;"></i> Dashboard</a>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <span class="badge badge-error gap-1 text-xs font-semibold py-2 px-3 text-white hidden sm:inline-flex">
+      <i data-lucide="heart-pulse" style="width:12px; height:12px;"></i> VBYLD 2027 Health Delivery
+    </span>
+    <a class="back-btn" href="dashboard.html"><i data-lucide="arrow-left" style="width:16px;"></i> Dashboard</a>
+  </div>
 </nav>
 
-<div class="container">
+<div class="container" style="max-width: 960px;">
   <div class="header-section">
-    <h2>Emergency Services Portal</h2>
-    <p class="subtitle">Instant crisis dialing & localized district support</p>
+    <h2>Emergency Services & Medical Triage</h2>
+    <p class="subtitle">AI Golden-Hour triage, rapid health delivery & localized district support</p>
   </div>
 
   <div class="sos-card">
@@ -34,8 +62,126 @@
     <a class="sos-btn" href="tel:112"><i data-lucide="phone-call" style="z-index:2;"></i> Dial 112 — National Emergency</a>
   </div>
 
+  <!-- AI Golden-Hour Medical Triage & Dispatch Widget (Placed ABOVE emergency contacts) -->
+  <div class="weather-card" id="triage-widget" style="background:var(--glass); backdrop-filter:blur(12px); border-radius:24px; padding:2rem 2.25rem; border:1.5px solid rgba(231, 76, 60, 0.3); margin-bottom:2.5rem; box-shadow:var(--shadow-lg);">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:14px; margin-bottom:1.5rem; padding-bottom:1.25rem; border-bottom:1px solid rgba(15,23,42,0.08);">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:40px; height:40px; border-radius:12px; background:#fee2e2; color:#ef4444; display:flex; align-items:center; justify-content:center;">
+          <i data-lucide="heart-pulse" style="width:22px; height:22px;"></i>
+        </div>
+        <div>
+          <h3 style="font-size:20px; font-weight:800; color:var(--dark); margin:0;">AI Golden-Hour Medical Triage & Dispatch</h3>
+          <p style="font-size:13px; color:var(--dark-muted); margin:0;">Clinical START & Manchester Triage Engine for Mass-Gathering & Disaster Casualties</p>
+        </div>
+      </div>
+      <div>
+        <span class="badge badge-error text-white font-black text-sm p-3 flex items-center gap-1.5 shadow-sm" id="triage-priority-badge">
+          <i data-lucide="alert-octagon" style="width:14px; height:14px;"></i> RED — IMMEDIATE (P1)
+        </span>
+      </div>
+    </div>
+
+    <!-- Condition Selector -->
+    <div style="margin-bottom:1.5rem;">
+      <label style="display:block; font-size:13px; font-weight:700; color:var(--dark); margin-bottom:6px;">
+        <i data-lucide="stethoscope" style="width:14px; height:14px; display:inline; color:#ef4444;"></i> Primary Casualty Condition:
+      </label>
+      <select id="triage-condition-select" onchange="window.onTriageInputChange()" style="width:100%; padding:12px 14px; border-radius:12px; border:1.5px solid rgba(15,23,42,0.12); font-family:var(--font); font-size:14px; font-weight:700; background:white; outline:none;">
+        <option value="stampede-trauma">Stampede Trauma / Crush Injury & Asphyxia (Kumbh Mela Chokepoint)</option>
+        <option value="heatstroke-dehydration">Severe Dehydration / Heatstroke & Hyperthermia (Midday Ghat Exposure)</option>
+        <option value="landslide-injury">Landslide / Rockfall Trauma & Puncture Wounds (Manipur NH-37/NH-2)</option>
+        <option value="cardiac-respiratory">Cardiac / Acute Respiratory Distress (Dyspnea & Chest Pain)</option>
+        <option value="minor-sprain-abrasion">Minor Walking Wounded / Ankle Sprain & Abrasions</option>
+      </select>
+    </div>
+
+    <!-- Clinical Vitals & Symptom Evaluation Row -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:1.5rem; background:rgba(255,255,255,0.7); padding:1.25rem; border-radius:16px; border:1px solid rgba(15,23,42,0.06);">
+      <div>
+        <label style="display:block; font-size:12px; font-weight:700; color:var(--dark-muted); margin-bottom:4px;">Consciousness Level</label>
+        <select id="triage-consciousness" onchange="window.onTriageInputChange()" style="width:100%; padding:9px 12px; border-radius:10px; border:1px solid rgba(15,23,42,0.15); font-family:var(--font); font-size:13px; font-weight:600; background:white;">
+          <option value="unconscious">Unconscious / Unresponsive (P1 Threat)</option>
+          <option value="altered">Altered / Disoriented / Delirious</option>
+          <option value="conscious">Fully Alert & Conscious</option>
+        </select>
+      </div>
+
+      <div style="display:flex; flex-direction:column; justify-content:center; gap:8px;">
+        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800">
+          <input type="checkbox" id="triage-severe-bleeding" onchange="window.onTriageInputChange()" class="checkbox checkbox-error checkbox-sm" />
+          <span>Active Arterial Bleeding</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800">
+          <input type="checkbox" id="triage-breathing-diff" onchange="window.onTriageInputChange()" class="checkbox checkbox-warning checkbox-sm" checked />
+          <span>Severe Breathing Difficulty / Cyanosis</span>
+        </label>
+      </div>
+
+      <div>
+        <label style="display:block; font-size:12px; font-weight:700; color:var(--dark-muted); margin-bottom:4px;">Pulse Rate (bpm)</label>
+        <div class="flex items-center gap-2">
+          <input type="number" id="triage-pulse" value="125" min="30" max="220" onchange="window.onTriageInputChange()" style="width:100%; padding:9px 12px; border-radius:10px; border:1px solid rgba(15,23,42,0.15); font-family:var(--font); font-size:13px; font-weight:700; background:white;" />
+          <span class="text-xs text-slate-500 font-semibold">bpm</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Free-text Symptom Description -->
+    <div style="margin-bottom:1.5rem;">
+      <label style="display:block; font-size:12px; font-weight:700; color:var(--dark-muted); margin-bottom:4px;">
+        Additional Symptom Notes or Incident Coordinates Context:
+      </label>
+      <input type="text" id="triage-symptoms-text" placeholder="e.g. Trampled near Pontoon Bridge 2 exit, shallow breathing, crushing chest pain..." oninput="window.onTriageInputChange()" style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid rgba(15,23,42,0.15); font-family:var(--font); font-size:13px; outline:none; background:white;" />
+    </div>
+
+    <!-- Computed Priority & Facility Info Banner -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px; margin-bottom:1.5rem;">
+      <div style="background:rgba(255,255,255,0.9); border-radius:16px; padding:1.25rem; border-left:4px solid #ef4444; box-shadow:var(--shadow-sm);">
+        <div style="font-size:11.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase;">Golden-Hour Target Window</div>
+        <div style="font-size:26px; font-weight:900; color:#ef4444; margin:4px 0;" id="triage-golden-hour">&lt; 20 Minutes</div>
+        <div style="font-size:12px; color:var(--dark-muted);" id="triage-urgency-desc">P1 Critical: Resuscitation and surgical intervention required immediately.</div>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.9); border-radius:16px; padding:1.25rem; border-left:4px solid var(--primary); box-shadow:var(--shadow-sm);">
+        <div style="font-size:11.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase;">Designated Health Camp / PHC Facility</div>
+        <div style="font-size:16px; font-weight:800; color:var(--dark); margin:4px 0;" id="triage-facility-name">Kumbh Sector 4 Field Hospital & Resuscitation Center</div>
+        <div style="font-size:12px; color:var(--primary); font-weight:700;" id="triage-distance-text">Estimated Distance: ~420m | Direct Corridor Priority</div>
+      </div>
+    </div>
+
+    <!-- Actionable Offline-Ready First-Aid Steps -->
+    <div style="background:rgba(255,255,255,0.95); border-radius:16px; padding:1.25rem; border:1px solid rgba(15,23,42,0.08); margin-bottom:1.5rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="font-size:13.5px; font-weight:800; color:var(--dark); display:flex; align-items:center; gap:6px;">
+          <i data-lucide="shield" style="width:16px; height:16px; color:var(--primary);"></i> Actionable Offline-Ready First-Aid Protocol:
+        </span>
+        <span class="badge badge-ghost text-xs font-semibold">Available Without Internet</span>
+      </div>
+      <div id="first-aid-steps-container" style="display:flex; flex-direction:column; gap:8px;">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+
+    <!-- Dispatch GPS SOS Button -->
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <button type="button" id="dispatch-sos-btn" onclick="window.dispatchEmergencySOS()" style="width:100%; padding:16px 24px; background:linear-gradient(135deg, #e74c3c, #c0392b); color:white; border:none; border-radius:16px; font-size:16px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 8px 24px rgba(231,76,60,0.3); transition:all 0.2s;">
+        <i data-lucide="send" style="width:18px; height:18px;"></i> Dispatch GPS SOS to Nearest Health Camp / PHC
+      </button>
+
+      <!-- Dynamic Dispatch Confirmation Box -->
+      <div id="dispatch-confirm-box" style="display:none; animation:fadeInUp 0.4s ease;" class="alert-box alert-safe">
+        <i data-lucide="check-circle" style="width:24px; height:24px; flex-shrink:0;"></i>
+        <div style="display:flex; flex-direction:column; gap:3px;">
+          <span style="font-weight:800; font-size:14px;">EMERGENCY SOS LOGGED & DISPATCHED!</span>
+          <span id="dispatch-details" style="font-size:12.5px;">Dispatch Ticket: TRG-2027 · Ambulance team mobilized · ETA 5-7 mins.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- District Emergency Directory (Preserved Intact) -->
   <div class="district-row">
-    <label><i data-lucide="map"></i> Select District:</label>
+    <label><i data-lucide="map"></i> Select District Directory:</label>
     <div class="select-wrapper">
       <select id="district-select" onchange="loadContacts()">
         <option value="imphal-east">Imphal East</option>
@@ -54,7 +200,7 @@
   <div class="contacts-grid" id="contacts-grid"></div>
 
   <div class="tips-card">
-    <h3><i data-lucide="brain"></i> Essential Tourist Safety Protocol</h3>
+    <h3><i data-lucide="brain"></i> Essential Tourist & Pilgrim Safety Protocol</h3>
     
     <div class="tip">
       <div class="tip-icon-box"><i data-lucide="phone"></i></div>

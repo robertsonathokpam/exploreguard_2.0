@@ -3,11 +3,34 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ExploreGuard — Weather Alerts</title>
+  <title>ExploreGuard — AI Multi-Hazard & Disaster Alerts</title>
   <!-- Premium Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS & DaisyUI CDN (Scoped & Safe) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#e1f5ee',
+              100: '#bce8da',
+              500: '#1D9E75',
+              600: '#157A5A',
+              700: '#0e553e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Linked Modular Stylesheets -->
@@ -23,15 +46,21 @@
   <a class="nav-logo" href="index.html">
     <i data-lucide="map" style="stroke-width:2.5px;"></i> ExploreGuard
   </a>
-  <a class="back-btn" href="dashboard.html"><i data-lucide="arrow-left" style="width:16px;"></i> Dashboard</a>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <span class="badge badge-success gap-1 text-xs font-semibold py-2 px-3 text-white hidden sm:inline-flex">
+      <i data-lucide="shield-check" style="width:12px; height:12px;"></i> VBYLD 2027 Disaster Mitigator
+    </span>
+    <a class="back-btn" href="dashboard.html"><i data-lucide="arrow-left" style="width:16px;"></i> Dashboard</a>
+  </div>
 </nav>
 
-<div class="container">
+<div class="container" style="max-width: 960px;">
   <div class="header-section">
     <h2>Weather & Climate Alerts</h2>
-    <p class="subtitle">Real-time localized meteorological advisory in Northeast India</p>
+    <p class="subtitle">Real-time localized meteorological advisory & AI Disaster Risk Engine</p>
   </div>
 
+  <!-- Search & Quick Chips -->
   <div class="search-row">
     <div class="search-wrapper">
       <input type="text" id="city-input" placeholder="Search city e.g. Imphal, Shillong, Kohima..." onkeydown="if(event.key==='Enter') searchCity()"/>
@@ -51,10 +80,154 @@
     <div class="city-chip" onclick="fetchWeather('Aizawl')"><i data-lucide="map-pin"></i> Aizawl</div>
   </div>
 
+  <!-- Live OpenWeather Result Card -->
   <div id="weather-result">
     <div class="loading">
       <i data-lucide="map" class="animate-pulse" style="width:36px; height:36px; color:var(--primary);"></i>
       <span>Select a quick city chip or enter a query above.</span>
+    </div>
+  </div>
+
+  <!-- AI Multi-Hazard & Landslide Risk Engine Section -->
+  <div class="weather-card" id="risk-engine-card" style="margin-top: 2rem; border-color: rgba(29, 158, 117, 0.35); box-shadow: 0 16px 36px rgba(29, 158, 117, 0.08);">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:1.5rem; padding-bottom:1.25rem; border-bottom:1px solid rgba(15, 23, 42, 0.08);">
+      <div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="cpu" style="width:20px; height:20px;"></i>
+          </div>
+          <div>
+            <h3 style="font-size:20px; font-weight:800; color:var(--dark); margin:0;">AI Multi-Hazard & Landslide Risk Engine</h3>
+            <p style="font-size:13px; color:var(--dark-muted); margin:0;">Live OpenWeather Telemetry + Regional Terrain Vulnerability Weights</p>
+          </div>
+        </div>
+      </div>
+      <div id="overall-risk-badge-container">
+        <span class="badge badge-warning text-white font-bold p-3 text-sm flex items-center gap-1.5" id="engine-badge">
+          <i data-lucide="alert-triangle" style="width:14px; height:14px;"></i> Calculating...
+        </span>
+      </div>
+    </div>
+
+    <!-- Regional Terrain Corridor Selector -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:1.5rem;">
+      <div>
+        <label style="display:block; font-size:13.5px; font-weight:700; color:var(--dark); margin-bottom:6px;">
+          <i data-lucide="mountain" style="width:14px; height:14px; display:inline; color:var(--primary);"></i> Regional Vulnerability Corridor
+        </label>
+        <select id="corridor-select" onchange="window.recomputeRiskEngine()" style="width:100%; padding:11px 14px; border-radius:12px; border:1.5px solid rgba(15,23,42,0.12); font-family:var(--font); font-size:14px; font-weight:600; background:rgba(255,255,255,0.9); outline:none;">
+          <option value="nh-37">Manipur NH-37 (Imphal - Jiribam Landslide Corridor)</option>
+          <option value="nh-2">Manipur NH-2 (Imphal - Kohima Montane Pass)</option>
+          <option value="imphal-valley">Imphal Valley Flood Plains (Thoubal & Bishnupur Basin)</option>
+          <option value="churachandpur">Churachandpur Hill Ranges & Watershed</option>
+          <option value="kumbh-sangam">Kumbh Mela Sangam Riverbank & Lowland Ghats</option>
+        </select>
+      </div>
+
+      <!-- Telemetry Source / Simulation Mode -->
+      <div>
+        <label style="display:block; font-size:13.5px; font-weight:700; color:var(--dark); margin-bottom:6px;">
+          <i data-lucide="sliders" style="width:14px; height:14px; display:inline; color:var(--primary);"></i> Telemetry Feed / Hackathon Simulator
+        </label>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-sm btn-outline text-xs" id="mode-btn-live" onclick="window.setSimulationScenario('live')">Live Weather</button>
+          <button type="button" class="btn btn-sm btn-outline btn-error text-xs" id="mode-btn-cloudburst" onclick="window.setSimulationScenario('cloudburst')">Cloudburst</button>
+          <button type="button" class="btn btn-sm btn-outline btn-warning text-xs" id="mode-btn-depression" onclick="window.setSimulationScenario('depression')">Depression</button>
+          <button type="button" class="btn btn-sm btn-outline btn-success text-xs" id="mode-btn-clear" onclick="window.setSimulationScenario('clear')">Clear Skies</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Rainfall & Telemetry Slider -->
+    <div style="background:rgba(255,255,255,0.7); border:1px solid rgba(15,23,42,0.06); border-radius:16px; padding:1rem 1.25rem; margin-bottom:1.5rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <span style="font-size:13px; font-weight:700; color:var(--dark);">
+          <i data-lucide="cloud-rain" style="width:14px; height:14px; display:inline; color:var(--primary);"></i> Real-Time Rainfall Rate Simulator: <span id="rainfall-rate-display" style="color:var(--primary); font-weight:800;">12 mm/h</span>
+        </span>
+        <span class="badge badge-ghost text-xs" id="active-scenario-tag">Live Sensor Sync</span>
+      </div>
+      <input type="range" min="0" max="100" value="12" id="rainfall-slider" oninput="window.onRainfallSliderChange(this.value)" class="range range-success range-sm w-full" />
+      <div class="w-full flex justify-between text-[11px] px-1 text-slate-500 font-semibold mt-1">
+        <span>0 mm/h (Dry)</span>
+        <span>25 mm/h (Moderate)</span>
+        <span>50 mm/h (Intense)</span>
+        <span>100 mm/h (Cloudburst)</span>
+      </div>
+    </div>
+
+    <!-- Probability Scores Grid -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:1.5rem;">
+      <!-- Landslide Probability Card -->
+      <div style="background:rgba(255,255,255,0.85); border-radius:16px; padding:1.25rem; border:1px solid rgba(226, 232, 240, 0.9); box-shadow:var(--shadow-sm);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:12.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase; letter-spacing:0.5px;">Landslide Probability</span>
+          <i data-lucide="trending-up" style="width:16px; height:16px; color:#ef4444;"></i>
+        </div>
+        <div style="display:flex; align-items:baseline; gap:6px;">
+          <span id="landslide-prob-val" style="font-size:36px; font-weight:800; color:var(--dark); letter-spacing:-1px;">--%</span>
+          <span id="landslide-trend-tag" class="text-xs font-bold text-red-500">Montane Hazard</span>
+        </div>
+        <progress id="landslide-progress" class="progress progress-error w-full mt-2" value="45" max="100"></progress>
+        <div style="font-size:11.5px; color:var(--dark-muted); margin-top:6px; display:flex; justify-content:space-between;">
+          <span>Slope factor: <strong id="slope-factor-val">88%</strong></span>
+          <span>Soil Fragility: <strong id="soil-fragility-val">85%</strong></span>
+        </div>
+      </div>
+
+      <!-- Flash-Flood Probability Card -->
+      <div style="background:rgba(255,255,255,0.85); border-radius:16px; padding:1.25rem; border:1px solid rgba(226, 232, 240, 0.9); box-shadow:var(--shadow-sm);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:12.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase; letter-spacing:0.5px;">Flash-Flood Probability</span>
+          <i data-lucide="waves" style="width:16px; height:16px; color:#3b82f6;"></i>
+        </div>
+        <div style="display:flex; align-items:baseline; gap:6px;">
+          <span id="flood-prob-val" style="font-size:36px; font-weight:800; color:var(--dark); letter-spacing:-1px;">--%</span>
+          <span id="flood-trend-tag" class="text-xs font-bold text-blue-600">Basin Inundation</span>
+        </div>
+        <progress id="flood-progress" class="progress progress-info w-full mt-2" value="30" max="100"></progress>
+        <div style="font-size:11.5px; color:var(--dark-muted); margin-top:6px; display:flex; justify-content:space-between;">
+          <span>Floodplain Index: <strong id="floodplain-index-val">45%</strong></span>
+          <span>Saturation: <strong id="moisture-index-val">High</strong></span>
+        </div>
+      </div>
+
+      <!-- Composite Multi-Hazard Score -->
+      <div style="background:rgba(255,255,255,0.85); border-radius:16px; padding:1.25rem; border:1px solid rgba(226, 232, 240, 0.9); box-shadow:var(--shadow-sm);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:12.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase; letter-spacing:0.5px;">Multi-Hazard Score</span>
+          <i data-lucide="activity" style="width:16px; height:16px; color:var(--primary);"></i>
+        </div>
+        <div style="display:flex; align-items:baseline; gap:6px;">
+          <span id="composite-score-val" style="font-size:36px; font-weight:800; color:var(--primary); letter-spacing:-1px;">--%</span>
+          <span id="risk-tier-badge" class="badge badge-warning text-xs font-bold">MODERATE</span>
+        </div>
+        <progress id="composite-progress" class="progress progress-warning w-full mt-2" value="40" max="100"></progress>
+        <div style="font-size:11.5px; color:var(--dark-muted); margin-top:6px; display:flex; justify-content:space-between;">
+          <span>Pressure: <strong id="baro-pressure-val">1012 hPa</strong></span>
+          <span>Wind: <strong id="wind-speed-val">18 km/h</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actionable Evacuation Guidance Card -->
+    <div id="evacuation-action-box" class="alert-box alert-warn" style="border-radius:16px; margin-top:0;">
+      <i data-lucide="shield-alert" id="evac-icon" style="width:26px; height:26px; flex-shrink:0;"></i>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <span style="font-size:14px; font-weight:800; color:inherit;">Recommended Disaster Evacuation Protocol:</span>
+        <span id="evac-action-text" style="font-size:13.5px; line-height:1.5;">Analyzing real-time sensor metrics...</span>
+      </div>
+    </div>
+
+    <!-- Safe Shelters & High Risk Sectors Footer -->
+    <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px solid rgba(15,23,42,0.06); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; font-size:12.5px; color:var(--dark-muted);">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <i data-lucide="home" style="width:14px; height:14px; color:var(--primary);"></i>
+        <span>Designated Safe Evacuation Shelters: <strong id="safe-shelter-name" style="color:var(--dark);">Noney Higher Secondary Evacuation Centre</strong></span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <i data-lucide="alert-octagon" style="width:14px; height:14px; color:#ef4444;"></i>
+        <span>Active Choke Sectors: <strong id="high-risk-sector-name" style="color:var(--dark);">Awangkhul Cut-bank</strong></span>
+      </div>
     </div>
   </div>
 </div>

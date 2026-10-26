@@ -3,16 +3,43 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ExploreGuard — Dashboard</title>
+  <title>ExploreGuard — Travel & Disaster Mitigation Console</title>
   <!-- Premium Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS & DaisyUI CDN (Scoped & Safe) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#e1f5ee',
+              100: '#bce8da',
+              500: '#1D9E75',
+              600: '#157A5A',
+              700: '#0e553e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Linked Modular Stylesheets -->
   <link rel="stylesheet" href="css/global.css">
   <link rel="stylesheet" href="css/dashboard.css">
+  
+  <!-- Safe configuration loader -->
+  <script>window.CONFIG = window.CONFIG || {};</script>
+  <script src="config.js"></script>
 </head>
 <body>
 <nav>
@@ -30,8 +57,17 @@
 
 <div class="container">
   <div class="header-section">
-    <h2 id="welcome-msg">Welcome back!</h2>
-    <p class="subtitle">Your localized travel intelligence console</p>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+      <div>
+        <h2 id="welcome-msg">Welcome back!</h2>
+        <p class="subtitle">Unified Disaster Mitigation, Crowd Safety & Travel Telemetry Console</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="badge badge-outline border-emerald-500 text-emerald-700 text-xs font-semibold px-3 py-2 flex items-center gap-1.5 bg-emerald-50/80">
+          <i data-lucide="shield" style="width:13px; height:13px;"></i> VBYLD 2027 Hackathon Edition
+        </span>
+      </div>
+    </div>
   </div>
 
   <div class="grid">
@@ -43,26 +79,106 @@
       <div class="card-sub">Granular flight, railway, & taxi bookings</div>
     </a>
     <a class="card" href="alerts.html">
-      <div class="card-icon-box">
+      <div class="card-icon-box" style="background:#e1f5ee; color:#1D9E75;">
         <i data-lucide="cloud-lightning"></i>
       </div>
-      <div class="card-title">Weather Alerts</div>
-      <div class="card-sub">Live climate monitoring & crisis alerts</div>
+      <div class="card-title">Weather & Risk Engine</div>
+      <div class="card-sub">AI Landslide & Flash-Flood probability predictions</div>
     </a>
     <a class="card" href="tracker.html">
-      <div class="card-icon-box">
-        <i data-lucide="map-pin"></i>
+      <div class="card-icon-box" style="background:#e0f2fe; color:#0284c7;">
+        <i data-lucide="users"></i>
       </div>
-      <div class="card-title">Location Tracker</div>
-      <div class="card-sub">Consent-based live tracking sharing</div>
+      <div class="card-title">Crowd & GPS Tracker</div>
+      <div class="card-sub">Kumbh Mela crowd density & satellite coordinates</div>
     </a>
     <a class="card" href="safety.html">
-      <div class="card-icon-box">
-        <i data-lucide="shield"></i>
+      <div class="card-icon-box" style="background:#fee2e2; color:#ef4444;">
+        <i data-lucide="heart-pulse"></i>
       </div>
-      <div class="card-title">Safety & Contacts</div>
-      <div class="card-sub">Immediate localized emergency directory</div>
+      <div class="card-title">Emergency Medical Triage</div>
+      <div class="card-sub">AI Golden-Hour triage & PHC dispatch SOS</div>
     </a>
+  </div>
+
+  <!-- AI Multi-Hazard & Landslide Risk Engine Overview Card -->
+  <div class="bookings-section" style="margin-bottom: 2.5rem; background: var(--glass); backdrop-filter: blur(12px); border-radius: 24px; padding: 1.75rem; border: 1.5px solid rgba(29, 158, 117, 0.25); box-shadow: var(--shadow-md);">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:1.25rem;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:38px; height:38px; border-radius:10px; background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center;">
+          <i data-lucide="cpu" style="width:20px; height:20px;"></i>
+        </div>
+        <div>
+          <h3 style="font-size:18px; font-weight:800; margin:0; display:flex; align-items:center; gap:8px;">
+            AI Multi-Hazard & Landslide Risk Engine
+          </h3>
+          <p style="font-size:13px; color:var(--dark-muted); margin:0;">Live telemetry + regional terrain vulnerability weights</p>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <select id="dash-corridor-select" onchange="window.updateDashboardRisk()" style="padding:6px 12px; border-radius:10px; border:1px solid rgba(15,23,42,0.15); font-family:var(--font); font-size:12.5px; font-weight:700; background:white;">
+          <option value="nh-37">Manipur NH-37 (Jiribam Corridor)</option>
+          <option value="nh-2">Manipur NH-2 (Kohima Pass)</option>
+          <option value="imphal-valley">Imphal Valley Flood Plains</option>
+          <option value="churachandpur">Churachandpur Watershed</option>
+          <option value="kumbh-sangam">Kumbh Mela Sangam Lowlands</option>
+        </select>
+        <span class="badge badge-warning text-white font-extrabold text-xs px-3 py-2" id="dash-risk-badge">
+          MODERATE RISK
+        </span>
+      </div>
+    </div>
+
+    <!-- Live Telemetry & Risk Grid -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:1.25rem;">
+      <div style="background:rgba(255,255,255,0.7); border-radius:14px; padding:1rem; border:1px solid rgba(15,23,42,0.06);">
+        <div style="font-size:11.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase;">Landslide Probability</div>
+        <div style="display:flex; align-items:baseline; gap:6px; margin:4px 0;">
+          <span id="dash-landslide-val" style="font-size:28px; font-weight:800; color:var(--dark);">--%</span>
+          <span style="font-size:11.5px; font-weight:700; color:#ef4444;">Cut-Slope</span>
+        </div>
+        <progress id="dash-landslide-prog" class="progress progress-error w-full h-1.5" value="40" max="100"></progress>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.7); border-radius:14px; padding:1rem; border:1px solid rgba(15,23,42,0.06);">
+        <div style="font-size:11.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase;">Flash-Flood Probability</div>
+        <div style="display:flex; align-items:baseline; gap:6px; margin:4px 0;">
+          <span id="dash-flood-val" style="font-size:28px; font-weight:800; color:var(--dark);">--%</span>
+          <span style="font-size:11.5px; font-weight:700; color:#3b82f6;">Drainage</span>
+        </div>
+        <progress id="dash-flood-prog" class="progress progress-info w-full h-1.5" value="30" max="100"></progress>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.7); border-radius:14px; padding:1rem; border:1px solid rgba(15,23,42,0.06);">
+        <div style="font-size:11.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase;">Composite Risk Index</div>
+        <div style="display:flex; align-items:baseline; gap:6px; margin:4px 0;">
+          <span id="dash-composite-val" style="font-size:28px; font-weight:800; color:var(--primary);">--%</span>
+          <span id="dash-composite-tag" class="text-xs font-bold text-amber-600">Moderate</span>
+        </div>
+        <progress id="dash-composite-prog" class="progress progress-warning w-full h-1.5" value="35" max="100"></progress>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.7); border-radius:14px; padding:1rem; border:1px solid rgba(15,23,42,0.06);">
+        <div style="font-size:11.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase;">Telemetry Feed</div>
+        <div style="font-size:13px; font-weight:700; color:var(--dark); margin-top:6px;">
+          Rain: <span id="dash-tele-rain" style="color:var(--primary);">12 mm/h</span> | Hum: <span id="dash-tele-hum">80%</span>
+        </div>
+        <div style="font-size:11.5px; color:var(--dark-muted); margin-top:4px;">
+          Pressure: <span id="dash-tele-press">1011 hPa</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evacuation Recommendation & Link to Alerts Console -->
+    <div style="background:rgba(255,255,255,0.9); border-radius:14px; padding:12px 16px; border-left:4px solid var(--primary); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div style="font-size:13px; color:var(--dark); flex:1; min-width:260px;">
+        <strong style="color:var(--dark); display:block; margin-bottom:2px;"><i data-lucide="shield-alert" style="width:14px; height:14px; display:inline; color:var(--primary);"></i> Recommended Action:</strong>
+        <span id="dash-evac-action">Calculating localized regional evacuation guidelines...</span>
+      </div>
+      <a href="alerts.html" class="btn btn-sm text-xs font-bold text-white" style="background:var(--primary); border:none; border-radius:10px;">
+        Open Full Risk Console <i data-lucide="arrow-right" style="width:13px; height:13px;"></i>
+      </a>
+    </div>
   </div>
 
   <div class="bookings-section">

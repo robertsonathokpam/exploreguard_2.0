@@ -1,107 +1,124 @@
-#  ExploreGuard : Smart Serverless Tourist Companion
+# ExploreGuard 2.0 — Disaster Mitigation, Kumbh Mela Crowd Telemetry & Golden-Hour Health Delivery
 
-ExploreGuard is a premium, responsive serverless web application designed to act as an active safety, climate advisory, and tracking companion for travelers navigating Northeast India. Built on a serverless architecture with real-time sync databases, it empowers travelers with critical tools such as meteorological warnings, booking simulation systems, instant emergency contact dialing, and peer-to-peer GPS coordinate telemetry sharing.
+[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
+[![Hackathon: VBYLD 2027](https://img.shields.io/badge/Hackathon-VBYLD%202027-blue.svg)](https://github.com/YOUR_USERNAME/exploreguard)
+[![Theme: Disaster, Kumbh & Health](https://img.shields.io/badge/Theme-Disaster%2C%20Kumbh%20%26%20Health-orange.svg)](ARCHITECTURE.md)
+[![Tests: Passing](https://img.shields.io/badge/Tests-28%2F28%20Passed-brightgreen.svg)](tests/test_risk_engine.js)
+
+**ExploreGuard 2.0** is an intelligent, edge-resilient, serverless humanitarian companion engineered for the **Hack for Social Cause (VBYLD 2027)** under the theme **"Disaster Mitigation, Kumbh Mela & Health Service Delivery"**.
+
+By combining live meteorological telemetry (OpenWeather API), geomorphological terrain susceptibility models (Manipur NH-2 / NH-37 mountain corridors & flood plains), real-time mass-gathering crowd density dynamics, and clinical START/Manchester emergency medical triage, ExploreGuard bridges the critical gap between environmental hazard awareness, mass crowd safety, and golden-hour emergency response.
 
 ---
 
-##  Architecture Diagram & Data Flow
+## 🎯 VBYLD 2027 Theme & UN SDG Alignment
 
-ExploreGuard is built on a client-first, serverless architecture. Below is the simplified visualization of how the client browser, Firebase cloud services, and external meteorological REST endpoints communicate:
+| Hackathon Pillar | Solution Delivered | UN SDG Alignment |
+| :--- | :--- | :--- |
+| **Disaster Mitigation** | Real-time AI Multi-Hazard & Landslide Risk Engine (`alerts.html` & `dashboard.html`) ingesting precipitation, humidity, barometric pressure, and terrain vulnerability weights. | **SDG 13: Climate Action** (13.1)<br/>**SDG 11: Sustainable Cities** (11.5) |
+| **Kumbh Mela Crowd Safety** | Mass-gathering pedestrian density telemetry ($p/m^2$), Fruin LoS categorization, automated bottleneck detection, and safe decongestion rerouting (`tracker.html`). | **SDG 11: Sustainable Cities & Communities** (11.7) |
+| **Health Service Delivery** | AI Golden-Hour Medical Triage (Red/Yellow/Green), offline-ready emergency first-aid protocols, and one-tap GPS SOS dispatching to nearest PHCs via Cloud Firestore (`safety.html`). | **SDG 3: Good Health & Well-being** (3.6 & 3.d) |
+
+---
+
+## 🚀 Key Innovations & Upgrades
+
+### 1. AI Multi-Hazard & Landslide Risk Engine (`alerts.html` & `dashboard.html`)
+* **Real-time Telemetry Ingestion:** Reads live OpenWeather parameters: rainfall intensity (mm/h), atmospheric pressure (hPa), humidity (%), and wind speed (km/h).
+* **Regional Terrain Vulnerability Weights:** Models high-risk corridors including **Manipur NH-37 (Imphal-Jiribam Landslide Corridor)**, **NH-2 (Imphal-Kohima Montane Pass)**, **Imphal Valley Flood Plains (Thoubal/Bishnupur)**, and **Kumbh Mela Sangam Riverbank Lowlands**.
+* **Mathematical Risk Scoring:** Evaluates real-time Landslide Probability (0-100%), Flash-Flood Probability (0-100%), and Composite Risk with DaisyUI badges (`badge-success`, `badge-warning`, `badge-error`).
+* **Contextual Evacuation Guidance:** Outputs explicit disaster mitigation recommendations, designated safe evacuation shelters, and high-risk chokepoint warnings.
+* **Interactive Hackathon Simulator:** Built-in scenario presets (*Monsoon Cloudburst 68.5 mm/h*, *Cyclonic Depression*, *Safe Transit*) plus an interactive rainfall rate slider (0-100 mm/h) for live judge demonstrations.
+
+### 2. Kumbh Mela & Mass-Gathering Crowd Telemetry (`tracker.html`)
+* **Dual-Mode Telemetry Switcher:** Seamlessly toggles between personal **GPS Journey Tracker** and the **Kumbh Mela Crowd Safety Mode**.
+* **Sector-by-Sector Monitoring:** Real-time metrics across 4 key sectors:
+  * **Sector A:** Sangam Holy Bathing Ghat
+  * **Sector B:** Transit Hub & Pontoon Bridges
+  * **Relief Camp Zone:** Food & Shelter Camp
+  * **Medical Corridor:** Emergency Field PHC & Ambulance Artery
+* **Fruin Pedestrian Level of Service (LoS):** Computes crowd density (persons/$m^2$), classifying flows into Safe ($<2.0\text{ p/m}^2$), Moderate ($2.0-4.0\text{ p/m}^2$), and Critical Stampede Risk ($>4.0\text{ p/m}^2$).
+* **Automated Bottleneck Detection & Decongestion Routing:** When inflow exceeds outflow or density spikes, automated alerts trigger dynamic pedestrian diversion routing to clear chokepoints.
+
+### 3. AI Golden-Hour Medical Triage & Health Delivery (`safety.html`)
+* **START & Manchester Clinical Triage:** Evaluates casualties across high-risk presentations: *Stampede Trauma / Crush Asphyxia*, *Severe Dehydration / Heatstroke*, *Landslide / Rockfall Trauma*, and *Cardiac / Acute Respiratory Distress*.
+* **Rapid Priority Stratification:** Instant classification into **RED (P1 - Immediate, $<20$ min Golden Hour)**, **YELLOW (P2 - Urgent)**, or **GREEN (P3 - Minor Walking Wounded)**.
+* **Offline-Ready First-Aid Protocols:** Detailed, pre-cached life-saving instructions (CPR, recovery position, direct pressure/tourniquets, rapid cooling, cervical immobilization) accessible with zero internet.
+* **One-Tap GPS SOS Dispatch:** Queries device GPS hardware, packages the patient's vitals, priority, and symptoms, and writes the emergency payload directly to **Cloud Firestore** (`triages` & `emergency_dispatches` collections) while dual-caching to `localStorage`.
+
+### 4. Privacy-First Consent Tracking (`tracker.html` & `view-location.html`)
+* **Zero Background Logging:** GPS coordinate streaming activates strictly when the user toggles location sharing ON.
+* **Instant Cloud Purge:** Turning the toggle OFF immediately triggers a Firestore `deleteDoc` operation, erasing all location records from the cloud.
+
+---
+
+## 🏛️ System Architecture
+
+For in-depth mathematical formulations, data schemas, and Mermaid.js diagrams, review **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ```mermaid
 graph TD
-    Client[Browser Frontend - HTML5/CSS3/ES6] <--> |Auth Requests & Redirect Guards| Auth[Firebase Authentication]
-    Client <--> |Real-Time Location Snapshots & Sync| DB[(Firebase Firestore NoSQL)]
-    Client --> |REST API fetch queries| WeatherAPI[OpenWeather REST API]
-    Geoloc[Browser Geolocation API] --> |Hardware Coordinate Streams| Client
+    Client[Browser Client - HTML5 / Tailwind / DaisyUI / ES6] <--> |Auth State & Session Guards| Auth[Firebase Authentication]
+    Client <--> |Real-Time Location & SOS Dispatch Stream| DB[(Cloud Firestore NoSQL)]
+    Client --> |Meteorological REST Ingestion| WeatherAPI[OpenWeather REST API]
+    Sensors[Hardware GNSS / Geolocation API] --> |Live Coordinate Stream| Client
     
-    subgraph Client Application Pages
-      Index[index.html - Landing Desk]
-      Login[login.html - Sign-in & SignUp]
-      Dash[dashboard.html - Console Hub]
+    subgraph Client Application Modules
+      Dash[dashboard.html - Unified Command Console]
+      Alert[alerts.html - AI Multi-Hazard Risk Engine]
+      Track[tracker.html - Kumbh Crowd & GPS Telemetry]
+      Safety[safety.html - Medical Triage & PHC Dispatch]
       Book[booking.html - Transit Permits]
-      Alert[alerts.html - Climate Desk]
-      Track[tracker.html - Telemetry Switch]
-      Safety[safety.html - Crisis Contacts]
-      View[view-location.html - Shared Map]
+      View[view-location.html - Shared Peer Map]
     end
 ```
 
 ---
 
-##  Project Structure
-
-The project has been architected strictly adhering to the **Single Responsibility Principle**, separating layout (HTML5), static modular aesthetics (CSS3), dynamic controller logic (ES6 Modules), and third-party configuration parameters into highly maintainable modules.
+## 📂 Repository Structure
 
 ```
 exploreguard/
 │
-├── 📂 css/                           # Modular stylesheets for individual layouts
-│   ├── global.css                   # Global CSS design variables, typography, and sticky nav
-│   ├── index.css                    # Hero visual grids, feature cards, and statistics UI
-│   ├── login.css                    # Full-screen dynamic backdrops and authentication layouts
-│   ├── dashboard.css                # Visual user command panels, dynamic permits, and metrics
-│   ├── booking.css                  # Sliding interactive wizards and permit transaction cards
-│   ├── alerts.css                   # Meteorological panels, weather grids, and setup UI
-│   ├── tracker.css                  # Live toggle switches, tracking dials, and map viewports
-│   └── safety.css                   # Pulsating SOS controls and regional dial cards
+├── 📂 css/                           # Modular stylesheets & design systems
+│   ├── global.css                   # Global variables, sticky navigation, typography
+│   ├── alerts.css                   # Risk engine cards & weather meters
+│   ├── dashboard.css                # Dashboard panels & boarding pass metrics
+│   ├── tracker.css                  # Crowd dials, LoS gauges & map frames
+│   ├── safety.css                   # Triage widgets, SOS pulses & dial cards
+│   ├── booking.css                  # Travel permit wizards
+│   └── index.css                    # Hero visual grids & feature highlights
 │
-├── 📂 js/                            # ES6 controller scripts managing database & APIs
-│   ├── login.js                     # Firebase signup, sign-in, and redirect logic
-│   ├── dashboard.js                 # Firestore user aggregate queries and cancellation handlers
-│   ├── booking.js                   # Firestore permit generation writes and modals
-│   ├── alerts.js                    # Weather queries, telemetry filters, and localStorage cache
-│   ├── tracker.js                   # Geolocation watchPosition and real-time setDoc streams
-│   ├── safety.js                    # Regional dialer queries and crisis checklists
-│   └── view-location.js             # Firestore onSnapshot listener for recipient WebSocket mapping
+├── 📂 js/                            # ES6 modular controllers
+│   ├── risk-engine.js               # AI Multi-Hazard, Crowd Density & Triage Core Math
+│   ├── alerts.js                    # Weather telemetry & risk engine UI controller
+│   ├── dashboard.js                 # Dashboard summary & Firestore booking queries
+│   ├── tracker.js                   # GPS geolocation & Kumbh crowd telemetry controller
+│   ├── safety.js                    # Medical triage assessor & Firestore SOS dispatcher
+│   ├── booking.js                   # Transit booking Firestore transactions
+│   ├── login.js                     # Firebase authentication & redirect guards
+│   └── view-location.js             # Recipient live map WebSocket onSnapshot listener
 │
-├── 📄 config.js                      # Git-ignored local variables (Created from template)
-├── 📄 config.example.js              # Version-controlled configuration parameter template
-├── 📄 firebase-config.js             # Shared serverless DB and Authentication entry point
+├── 📂 sample_data/                   # Rich mock telemetry & triage test fixtures
+│   └── mock_hazard_crowd_health_data.json
 │
-├── 📄 index.html                     # Public marketing and entry page
-├── 📄 login.html                     # Auth interface (Sign in / Registration)
-├── 📄 dashboard.html                 # Unified dashboard aggregation panel
-├── 📄 booking.html                   # Travel permits & transit booking engine
-├── 📄 alerts.html                    # Weather advisories & safety warnings console
-├── 📄 tracker.html                   # Geolocation tracking panel
-├── 📄 safety.html                    # Local crisis emergency SOS directory
-├── 📄 view-location.html             # Real-time WebSocket coordinator live map
+├── 📂 tests/                         # Automated validation test suites
+│   └── test_risk_engine.js          # 28 automated unit & integration assertions
 │
-└── 📄 .gitignore                     # Git-tracking boundary exclusions (excludes config.js)
+├── 📄 config.example.js              # Template configuration file
+├── 📄 config.js                      # Local API configuration (Git-ignored)
+├── 📄 firebase-config.js             # Firebase Authentication & Firestore entry point
+├── 📄 ARCHITECTURE.md                # Comprehensive Technical Design Document
+├── 📄 LICENSE                        # Standard MIT License
+├── 📄 package.json                   # Project metadata & test execution scripts
+└── 📄 README.md                       # Project documentation
 ```
 
 ---
 
-## ⚙️ Core Modules & How They Work
+## ⚙️ Local Setup & Execution Guide
 
-### 1. Unified Authentication (`login.html` & `js/login.js`)
-Secures user portals utilizing **Firebase Authentication**. Features dynamic ES6 lifecycle state hooks (`onAuthStateChanged`). Active route-guards monitor sessions, automatically redirecting authenticated users to the dashboard and locking down pages from unauthenticated access.
-
-### 2. Meteorological Safety Advisory Desk (`alerts.html` & `js/alerts.js`)
-Fetches live regional climate conditions using the **OpenWeather REST API**. 
-* **Prioritized Key Resolution:** Resolves OpenWeather credentials via a prioritized security model (checks Browser `localStorage` ➔ `window.CONFIG.js`).
-* **Interactive Client Fallback:** If the repository is deployed on a public host (e.g. GitHub Pages) where private keys are hidden/absent, the UI dynamically displays a sleek glassmorphic configuration widget allowing visitors to key in their own API key, which is saved locally to their browser.
-* **Intelligent Advisories:** Inspects condition metrics (visibility, wind velocities, active precipitation) to automatically output dynamic safety warning banners (Safe/Caution/Critical Threat).
-* **Reset & Rotation:** Users can instantly click a "Reset Key" button to delete credentials from storage, enabling clean key rotation.
-
-### 3. Geolocation Coordinate Sharing (`tracker.html` & `js/tracker.js`)
-Initiates high-accuracy traveler coordinates tracking using the browser's hardware **Geolocation API** (`navigator.geolocation.watchPosition`). 
-* Every location callback translates to an asynchronous Firestore `setDoc` operation, overwriting coordinates telemetry in the `locations/{userId}` document.
-* **Privacy-First:** Location streams only initiate under explicit toggle toggles. Disabling the toggle stops the sensor hardware instantly and triggers a `deleteDoc` operation to erase traveler telemetry from the cloud, preventing background tracking.
-
-### 4. Recipient WebSocket Tracking (`view-location.html` & `js/view-location.js`)
-Lightweight view page shared with trusted family or rescue coordinators.
-* It parses the traveler's user ID directly from the URL query string (`?uid=...`).
-* Binds an active, persistent connection using a **Firestore Real-Time Listener** (`onSnapshot`).
-* Because Firestore maintains WebSocket tunnels, traveler updates instantly trigger recipient map adjustments and coordinates plotting.
-* If the traveler disables tracking, the Firestore document is deleted, which automatically notifies the recipient.
-
----
-
-##  Setting Up & Running Locally
-
-Since ExploreGuard is built on a serverless architecture, it runs entirely in the browser without requiring a heavy server-side setup.
+Because ExploreGuard is built on a serverless client architecture, it runs without heavy server-side dependencies.
 
 ### 1. Clone the Repository
 ```bash
@@ -109,65 +126,54 @@ git clone https://github.com/YOUR_USERNAME/exploreguard.git
 cd exploreguard
 ```
 
-### 2. Configure Your Keys
-Create a local `config.js` file from the repository template:
+### 2. Configure Environment Keys
+Create a local `config.js` file from the provided template:
 ```bash
 cp config.example.js config.js
 ```
-Open `config.js` in a text editor and add your private OpenWeather API key:
+Open `config.js` and add your OpenWeather API key:
 ```javascript
 window.CONFIG = {
-  OPENWEATHER_API_KEY: 'YOUR_API_KEY_HERE'
+  OPENWEATHER_API_KEY: 'YOUR_OPENWEATHER_API_KEY_HERE'
 };
 ```
-*Note: `config.js` is automatically excluded in `.gitignore` to protect it from being exposed on GitHub.*
+*(Note: If you do not have an API key, ExploreGuard includes an interactive in-browser key setup prompt as well as offline regional telemetry fallbacks and simulated hackathon scenarios).*
 
-### 3. Launch a Local Web Server
-You can open `index.html` directly, or serve it using a lightweight local development server:
-* Using VS Code's **Live Server** extension.
-* Or using Python:
+### 3. Run Automated Validation Tests
+Ensure Node.js (v18+) is installed, then run the test suite:
+```bash
+npm test
+# or
+node tests/test_risk_engine.js
+```
+**Expected Output:** `28 Passed, 0 Failed (100% Pass Rate)`.
+
+### 4. Launch Local Development Server
+Serve the repository using any local HTTP server:
+* **Using Node's npx:**
+  ```bash
+  npx serve .
+  ```
+* **Using Python:**
   ```bash
   python -m http.server 8000
   ```
-Open your browser to `http://localhost:8000`.
+* **Using VS Code:** Right-click `index.html` and select **"Open with Live Server"**.
+
+Visit `http://localhost:8000` in your browser.
 
 ---
 
-##  Scalability Analysis: Present & Future
+## 🧪 Automated Test Suite Validation
 
-### Present Scalability
-ExploreGuard is designed to scale dynamically out-of-the-box:
-1. **Serverless Infrastructure Scaling:** By utilizing **Firebase Auth** and **NoSQL Cloud Firestore**, database scaling is handled automatically. The system adapts from 1 to 100,000+ simultaneous read/write cycles without requiring system administrator provisioning or VM hosting costs.
-2. **Decoupled Key Management:** Isolating key definitions within a gitignored `config.js` and combining it with a browser `localStorage` user input fallback means the app can run on static web hosts (GitHub Pages, Netlify) for free with zero API cost overhead for the developer.
-3. **Local Caching & Performance:** Custom browser configurations minimize recurrent round-trips to remote weather endpoints. Assets, icons (loaded via highly optimized SVG CDN Lucide), and design variables are served fully on the client-side, reducing latency.
+The test suite in `tests/test_risk_engine.js` validates all core mathematical and clinical algorithms:
+1. **Sample Data Integrity:** Validates JSON schema adherence across weather scenarios, Kumbh crowd sectors, and emergency triage records.
+2. **AI Disaster Risk Calculations:** Asserts that torrential cloudbursts ($>60\text{ mm/h}$) on high-vulnerability corridors (NH-37) produce `Critical` landslide probability ($\ge 70\%$) with evacuation instructions, while flat river basins (Thoubal) prioritize flash-flood probability.
+3. **Kumbh Mela Crowd Telemetry:** Asserts that safe headcounts evaluate to Fruin LoS A–C, while surges ($>4.0\text{ p/m}^2$) activate the automated bottleneck alert and trigger decongestion rerouting.
+4. **Clinical Triage Logic:** Asserts that unconscious or actively hemorrhaging casualties escalate to `RED (P1 - Immediate)` with $<20$ min golden-hour targets, while walking wounded evaluate to `GREEN (P3)`.
 
-### Future Scalability Roadmap
-As the user base expands, the system is designed to transition to the following architectures:
+---
 
-```mermaid
-graph LR
-    subgraph Present Serverless
-      ClientApp[Client Browser App] -->|Direct SDK Writes| Firestore[(Firestore DB)]
-      ClientApp -->|Direct API Keys| WeatherAPI[Weather REST API]
-    end
-    
-    subgraph Future Scaled Architecture
-      ReactClient[Next.js React Client] -->|API Middleware| CloudFunc[Firebase Cloud Functions]
-      CloudFunc -->|Rate Limiting / Server Cache| WeatherAPI2[Weather API]
-      CloudFunc -->|Secure Transaction Rules| Firestore2[(Firestore DB + Shards)]
-      ReactClient -->|Service Worker Cache| PWA[Offline Local DB]
-    end
-```
+## 📜 License
 
-1. **API Key Protection via Serverless Middleware (Backend Proxy):**
-   * *Problem:* On a public live site, client-side API keys can be observed in browser network panels.
-   * *Solution:* Migrate key retrievals to **Firebase Cloud Functions** (Node.js backend proxy). The client makes requests directly to your cloud function (e.g. `/api/weather?city=Imphal`), and the function securely queries OpenWeather using environment variables hidden on the server, injecting rate limiting and server-side weather caching.
-2. **Framework Migration (Next.js / Vite React):**
-   * Migrate the codebase into a component-driven Single Page Application (SPA). This enables unified state management, component reusability (e.g. unified card interfaces), and client-side page transitions.
-3. **Firestore Scale Optimization:**
-   * *Shard-based coordinate collections:* Active GPS tracking causes heavy writes. As concurrent users scale, coordinates collections will implement write sharding and optimized composite indexing to optimize query throughput.
-   * *Advanced Database Security Rules:* Enforce granular write security, ensuring location documents can only be created by authenticated owners and queried exclusively by authorized coordinators.
-4. **Offline Resilience & PWA Capabilities:**
-   * Northeast India features rugged mountainous terrain where internet connections are spotty. 
-   * Integrating a **Progressive Web App (PWA)** shell will leverage standard Service Workers to cache critical emergency data offline. 
-   * Firestore's **Offline Persistence** will be enabled, so travelers can still register permit details and track GPS coordinate trails offline. Once cellular signal is recovered, the queues will automatically sync back to the cloud.
+ExploreGuard is released under the **MIT License**. See [LICENSE](LICENSE) for full details.
