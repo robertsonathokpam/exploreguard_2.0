@@ -1,6 +1,11 @@
 import { auth } from '../firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { computeDisasterRisk, TERRAIN_PROFILES } from './risk-engine.js';
+import {
+  computeDisasterRisk,
+  estimateSlopeFromElevationGrid,
+  generateOfflineDisasterBriefing,
+  TERRAIN_PROFILES
+} from './risk-engine.js';
 
 // Initialize Lucide Icons
 lucide.createIcons();
@@ -12,25 +17,34 @@ onAuthStateChanged(auth, (user) => {
 // Priority Key Resolution: Local Storage -> window.CONFIG -> null
 function getWeatherApiKey() {
   const storedKey = localStorage.getItem('openweather_api_key');
-  if (storedKey && storedKey.trim() !== '') {
-    return storedKey.trim();
-  }
-  
+  if (storedKey && storedKey.trim() !== '') return storedKey.trim();
   const configKey = window.CONFIG?.OPENWEATHER_API_KEY;
-  if (configKey && configKey.trim() !== '' && configKey !== 'YOUR_OPENWEATHER_API_KEY_HERE') {
-    return configKey.trim();
-  }
-  
+  if (configKey && configKey.trim() !== '' && configKey !== 'YOUR_OPENWEATHER_API_KEY_HERE') return configKey.trim();
   return null;
 }
 
-// Current active telemetry state
+function getGeminiApiKey() {
+  const stored = localStorage.getItem('gemini_api_key');
+  if (stored && stored.trim() !== '') return stored.trim();
+  const config = window.CONFIG?.GEMINI_API_KEY;
+  if (config && config.trim() !== '') return config.trim();
+  return null;
+}
+
+// Active State
+let currentTerrainMode = 'benchmarks'; // 'benchmarks' | 'universal'
+let customTerrainState = null;
+let currentDynamicElevation = null;
+
 let currentTelemetry = {
   rainfall: 14.5,
   humidity: 82,
   windSpeed: 24,
   pressure: 1008,
-  source: 'live'
+  source: 'live',
+  lat: 24.8170,
+  lon: 93.9368,
+  locationName: 'Imphal Valley'
 };
 
 // Sleek interactive UI prompt if key is missing
@@ -93,10 +107,185 @@ window.searchCity = () => {
   if (city) fetchWeather(city);
 };
 
-// UI Updater for the AI Risk Engine
+// Terrain Mode Switcher: Benchmark Presets vs Universal Anywhere Mode
+window.setTerrainMode = (mode) => {
+  currentTerrainMode = mode;
+  const tabBench = document.getElementById('tab-benchmarks');
+  const tabUniv = document.getElementById('tab-universal');
+  const panelBench = document.getElementById('panel-benchmarks-terrain');
+  const panelUniv = document.getElementById('panel-universal-terrain');
+
+  if (mode === 'universal') {
+    tabUniv.classList.add('tab-active');
+    tabBench.classList.remove('tab-active');
+    panelUniv.style.display = 'block';
+    panelBench.style.display = 'none';
+  } else {
+    tabBench.classList.add('tab-active');
+    tabUniv.classList.remove('tab-active');
+    panelBench.style.display = 'block';
+    panelUniv.style.display = 'none';
+  }
+  updateRiskEngineUI();
+  lucide.createIcons();
+};
+
+// Universal Location Query (Geocodes location -> Fetches 5-point DEM Elevation -> Computes gradient)
+window.queryUniversalLocation = async (cityNameOrCoords = null) => {
+  const query = cityNameOrCoords || document.getElementById('universal-location-input')?.value.trim();
+  if (!query) return;
+
+  const statusTag = document.getElementById('dem-status-tag');
+  if (statusTag) {
+    statusTag.textContent = 'Querying DEM...';
+    statusTag.className = 'badge badge-sm badge-warning font-bold text-white animate-pulse';
+  }
+
+  try {
+    let lat, lon, displayName;
+    if (typeof query === 'object' && query.lat && query.lon) {
+      lat = query.lat;
+      lon = query.lon;
+      displayName = query.name || `GPS (${lat.toFixed(3)}, ${lon.toFixed(3)})`;
+    } else {
+      // Nominatim free geocoding
+      const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+      const geoData = await geoRes.json();
+      if (!geoData || geoData.length === 0) throw new Error('Location not found');
+      lat = parseFloat(geoData[0].lat);
+      lon = parseFloat(geoData[0].lon);
+      displayName = geoData[0].display_name.split(',')[0];
+    }
+
+    currentTelemetry.lat = lat;
+    currentTelemetry.lon = lon;
+    currentTelemetry.locationName = displayName;
+
+    // Fetch 5-Point Elevation Grid from Open-Meteo DEM API
+    // Offsets of ~0.005 degrees (~556m) N, S, E, W
+    const offset = 0.005;
+    const lats = [lat, lat + offset, lat - offset, lat, lat].join(',');
+    const lons = [lon, lon, lon, lon + offset, lon - offset].join(',');
+    const demRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lons}`);
+    
+    if (demRes.ok) {
+      const demData = await demRes.json();
+      const elevations = demData.elevation; // Array of 5 elevations
+      currentDynamicElevation = estimateSlopeFromElevationGrid(
+        elevations[0],
+        elevations[1],
+        elevations[2],
+        elevations[3],
+        elevations[4],
+        offset
+      );
+    } else {
+      // Default elevation fallback based on typical montane average
+      currentDynamicElevation = { slopeAngleDeg: 28.5, slopeFactor: 0.63, avgElevationMeters: 850 };
+    }
+
+    // Query Overpass API for nearby hospitals / schools / shelters
+    let recommendedShelter = `${displayName} Municipal High Grounds`;
+    try {
+      const overpassRes = await fetch(`https://overpass-api.de/api/interpreter?data=[out:json];node(around:4000,${lat},${lon})["amenity"~"hospital|clinic|school|community_centre"];out 3;`, { signal: AbortSignal.timeout(3500) });
+      if (overpassRes.ok) {
+        const opData = await overpassRes.json();
+        if (opData.elements && opData.elements.length > 0) {
+          const names = opData.elements.map(el => el.tags?.name).filter(Boolean);
+          if (names.length > 0) recommendedShelter = names.slice(0, 2).join(' | ');
+        }
+      }
+    } catch (e) {
+      console.warn("Overpass API fallback active:", e);
+    }
+
+    customTerrainState = {
+      id: `custom-${Date.now()}`,
+      name: `${displayName} Topographic Corridor`,
+      category: `${currentDynamicElevation.slopeAngleDeg > 20 ? 'Montane Cut Slope' : 'Valley Drainage Basin'} (Elev: ${currentDynamicElevation.avgElevationMeters}m)`,
+      slopeWeight: currentDynamicElevation.slopeFactor,
+      soilFragility: 0.75,
+      historyWeight: 0.85,
+      floodVulnerability: currentDynamicElevation.slopeAngleDeg < 12 ? 0.90 : 0.40,
+      safeShelters: [recommendedShelter, `${displayName} District Emergency Complex`],
+      highRiskZones: [`${displayName} Drainage Chokepoints`, 'Steep Incline Cut-Banks']
+    };
+
+    // Update DEM Status Badge
+    if (statusTag) {
+      statusTag.textContent = 'DEM Locked';
+      statusTag.className = 'badge badge-sm badge-success font-bold text-white';
+    }
+    const coordsEl = document.getElementById('dem-coords-text');
+    if (coordsEl) coordsEl.textContent = `Lat: ${lat.toFixed(4)}°, Lon: ${lon.toFixed(4)}° (${displayName})`;
+    const elevEl = document.getElementById('dem-elevation-text');
+    if (elevEl) elevEl.textContent = `${currentDynamicElevation.avgElevationMeters}m`;
+    const slopeEl = document.getElementById('dem-slope-text');
+    if (slopeEl) slopeEl.textContent = `${currentDynamicElevation.slopeAngleDeg}° (${Math.round(currentDynamicElevation.slopeFactor * 100)}% factor)`;
+
+    // Automatically fetch live weather for the new coordinates if OpenWeather key is present
+    const key = getWeatherApiKey();
+    if (key) {
+      try {
+        const wRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${key}&units=metric`);
+        if (wRes.ok) {
+          const wData = await wRes.json();
+          currentTelemetry.rainfall = wData.rain ? (wData.rain['1h'] || wData.rain['3h'] || 0) : 0;
+          currentTelemetry.humidity = wData.main.humidity || 75;
+          currentTelemetry.windSpeed = Math.round((wData.wind?.speed || 5) * 3.6);
+          currentTelemetry.pressure = wData.main.pressure || 1012;
+        }
+      } catch (err) {
+        console.warn("Live weather fetch fallback:", err);
+      }
+    }
+
+    updateRiskEngineUI();
+  } catch (err) {
+    console.error("Universal geocoding error:", err);
+    if (statusTag) {
+      statusTag.textContent = 'Offline Fallback';
+      statusTag.className = 'badge badge-sm badge-error font-bold text-white';
+    }
+  }
+};
+
+window.useLiveGPSForDisasterEngine = () => {
+  if (!navigator.geolocation) {
+    alert("Geolocation is not supported by your browser.");
+    return;
+  }
+  const statusTag = document.getElementById('dem-status-tag');
+  if (statusTag) {
+    statusTag.textContent = 'Acquiring GPS Fix...';
+    statusTag.className = 'badge badge-sm badge-warning font-bold text-white animate-pulse';
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      window.queryUniversalLocation({
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+        name: 'Live GPS Location'
+      });
+    },
+    (err) => {
+      alert("GPS sensor permission denied. Falling back to default corridor.");
+      if (statusTag) {
+        statusTag.textContent = 'GPS Denied';
+        statusTag.className = 'badge badge-sm badge-error font-bold text-white';
+      }
+    },
+    { enableHighAccuracy: true, timeout: 6000 }
+  );
+};
+
+// UI Updater for the AI Risk Engine (Sigmoid Activated)
 export function updateRiskEngineUI() {
   const corridorKey = document.getElementById('corridor-select')?.value || 'nh-37';
-  const riskResult = computeDisasterRisk(currentTelemetry, corridorKey);
+  const targetTerrain = (currentTerrainMode === 'universal' && customTerrainState) ? customTerrainState : corridorKey;
+  
+  const riskResult = computeDisasterRisk(currentTelemetry, targetTerrain, currentDynamicElevation);
 
   // Update Badge
   const badgeContainer = document.getElementById('overall-risk-badge-container');
@@ -160,8 +349,8 @@ export function updateRiskEngineUI() {
   const slopeVal = document.getElementById('slope-factor-val');
   if (slopeVal) slopeVal.textContent = `${riskResult.metrics.slopeCoefficient}%`;
 
-  const soilVal = document.getElementById('soil-fragility-val');
-  if (soilVal) soilVal.textContent = `${riskResult.metrics.soilFragilityIndex}%`;
+  const slopeAngle = document.getElementById('slope-angle-val');
+  if (slopeAngle) slopeAngle.textContent = `${riskResult.metrics.slopeAngleDeg}°`;
 
   const fpIndex = document.getElementById('floodplain-index-val');
   if (fpIndex) fpIndex.textContent = `${riskResult.metrics.floodPlainIndex}%`;
@@ -201,6 +390,7 @@ export function updateRiskEngineUI() {
     highRisk.textContent = riskResult.highRiskZones.join(' & ');
   }
 
+  window.lastRiskAssessment = riskResult;
   lucide.createIcons();
 }
 
@@ -222,7 +412,6 @@ window.setSimulationScenario = (scenario) => {
   const display = document.getElementById('rainfall-rate-display');
   const tag = document.getElementById('active-scenario-tag');
 
-  // Clear active button styling
   ['live', 'cloudburst', 'depression', 'clear'].forEach(s => {
     const btn = document.getElementById(`mode-btn-${s}`);
     if (btn) btn.classList.remove('btn-active');
@@ -231,16 +420,15 @@ window.setSimulationScenario = (scenario) => {
   if (activeBtn) activeBtn.classList.add('btn-active');
 
   if (scenario === 'cloudburst') {
-    currentTelemetry = { rainfall: 68.5, humidity: 96, windSpeed: 48, pressure: 998, source: 'cloudburst' };
+    currentTelemetry = { ...currentTelemetry, rainfall: 68.5, humidity: 96, windSpeed: 48, pressure: 998, source: 'cloudburst' };
     if (tag) tag.textContent = 'Scenario: Cloudburst Surge';
   } else if (scenario === 'depression') {
-    currentTelemetry = { rainfall: 42, humidity: 89, windSpeed: 54, pressure: 1002, source: 'depression' };
+    currentTelemetry = { ...currentTelemetry, rainfall: 42, humidity: 89, windSpeed: 54, pressure: 1002, source: 'depression' };
     if (tag) tag.textContent = 'Scenario: Deep Depression';
   } else if (scenario === 'clear') {
-    currentTelemetry = { rainfall: 0, humidity: 50, windSpeed: 10, pressure: 1014, source: 'clear' };
+    currentTelemetry = { ...currentTelemetry, rainfall: 0, humidity: 50, windSpeed: 10, pressure: 1014, source: 'clear' };
     if (tag) tag.textContent = 'Scenario: Clear Transit';
   } else {
-    // live
     currentTelemetry.source = 'live';
     if (tag) tag.textContent = 'Live OpenWeather Sync';
   }
@@ -249,6 +437,90 @@ window.setSimulationScenario = (scenario) => {
   if (display) display.textContent = `${currentTelemetry.rainfall} mm/h`;
 
   updateRiskEngineUI();
+};
+
+// Generative AI Evacuation Briefing (Google Gemini 2.5 Flash + Instant Fallback)
+window.generateAIEvacuationBriefing = async () => {
+  const modal = document.getElementById('briefing-modal');
+  const outputEl = document.getElementById('briefing-output');
+  const sourceTag = document.getElementById('briefing-source-tag');
+
+  modal.showModal();
+  outputEl.value = 'Contacting Google Gemini 2.5 Flash model... Synthesizing disaster bulletin...';
+
+  const risk = window.lastRiskAssessment || computeDisasterRisk(currentTelemetry);
+  const geminiKey = getGeminiApiKey();
+
+  if (geminiKey) {
+    try {
+      const prompt = `You are ExploreGuard AI, an official disaster risk and emergency evacuation coordinator. 
+Generate a concise, authoritative, structured Emergency Disaster Advisory Broadcast Bulletin for travelers and first responders based on the following real-time telemetry:
+- Target Corridor/Location: ${risk.terrainName} (${risk.category})
+- Composite Multi-Hazard Score: ${risk.compositeScore}% (${risk.riskLevel} Risk Tier)
+- Landslide Probability: ${risk.landslideProbability}%
+- Flash-Flood Probability: ${risk.floodProbability}%
+- Real-time Rainfall Rate: ${risk.metrics.rainfallMmH} mm/h
+- Topographic Slope Gradient: ${risk.metrics.slopeAngleDeg}° (${risk.metrics.slopeCoefficient}% factor)
+- Atmospheric Pressure: ${risk.metrics.pressureHpa} hPa
+- Recommended Shelter: ${risk.safeShelters.join(', ')}
+- Danger Chokepoints to Avoid: ${risk.highRiskZones.join(', ')}
+
+Format in clean bullet points with actionable emergency commands, highway transit instructions, and VHF radio frequencies.`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          outputEl.value = text;
+          if (sourceTag) sourceTag.textContent = 'Synthesized live via Google Gemini 2.5 Flash';
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Gemini API call failed, falling back to local template generator:", e);
+    }
+  }
+
+  // Instant Template Synthesis Fallback (0ms, 100% offline resilient)
+  outputEl.value = generateOfflineDisasterBriefing(risk);
+  if (sourceTag) sourceTag.textContent = 'Synthesized via ExploreGuard Edge Heuristics (Offline Ready)';
+};
+
+window.copyBriefing = () => {
+  const text = document.getElementById('briefing-output')?.value;
+  if (text) navigator.clipboard.writeText(text);
+  alert("Disaster bulletin copied to clipboard!");
+};
+
+// Gemini Settings Modal
+window.openGeminiSettings = () => {
+  const input = document.getElementById('gemini-key-input');
+  if (input) input.value = localStorage.getItem('gemini_api_key') || '';
+  document.getElementById('gemini-modal')?.showModal();
+};
+
+window.saveGeminiKey = () => {
+  const key = document.getElementById('gemini-key-input')?.value.trim();
+  if (key) {
+    localStorage.setItem('gemini_api_key', key);
+    alert('Gemini 2.5 Flash API Key saved securely to local browser storage.');
+  }
+  document.getElementById('gemini-modal')?.close();
+};
+
+window.clearGeminiKey = () => {
+  localStorage.removeItem('gemini_api_key');
+  document.getElementById('gemini-key-input').value = '';
+  alert('Gemini API Key removed. Offline edge fallback is active.');
+  document.getElementById('gemini-modal')?.close();
 };
 
 window.fetchWeather = async (city) => {
@@ -263,7 +535,6 @@ window.fetchWeather = async (city) => {
   const API_KEY = getWeatherApiKey();
   if (!API_KEY) {
     renderApiKeyPrompt(city);
-    // Still compute baseline risk with regional telemetry fallback
     updateRiskEngineUI();
     return;
   }
@@ -295,18 +566,20 @@ window.fetchWeather = async (city) => {
 
     const temp = Math.round(data.main.temp);
     const humidity = data.main.humidity;
-    const wind = Math.round(data.wind.speed * 3.6); // m/s to km/h
+    const wind = Math.round(data.wind.speed * 3.6);
     const condition = data.weather[0].description;
     const visibility = data.visibility ? Math.round(data.visibility / 1000) : 'N/A';
     const pressure = data.main.pressure || 1013;
     const rainMm = data.rain ? (data.rain['1h'] || data.rain['3h'] || 0) : 0;
 
-    // Feed live OpenWeather telemetry into Risk Engine if in live mode
     if (currentTelemetry.source === 'live') {
       currentTelemetry.rainfall = rainMm;
       currentTelemetry.humidity = humidity;
       currentTelemetry.windSpeed = wind;
       currentTelemetry.pressure = pressure;
+      currentTelemetry.lat = data.coord.lat;
+      currentTelemetry.lon = data.coord.lon;
+      currentTelemetry.locationName = data.name;
 
       const slider = document.getElementById('rainfall-slider');
       const display = document.getElementById('rainfall-rate-display');
@@ -314,7 +587,6 @@ window.fetchWeather = async (city) => {
       if (display) display.textContent = `${rainMm} mm/h`;
     }
 
-    // Safety alert logic based on weather conditions
     let alertClass = 'alert-safe';
     let alertMsg = 'Weather looks optimal for sightseeing and transit operations.';
     let alertIcon = 'check-circle';

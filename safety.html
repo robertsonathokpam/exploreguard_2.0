@@ -42,18 +42,18 @@
   <a class="nav-logo" href="index.html">
     <i data-lucide="map" style="stroke-width:2.5px;"></i> ExploreGuard
   </a>
-  <div style="display:flex; align-items:center; gap:12px;">
-    <span class="badge badge-error gap-1 text-xs font-semibold py-2 px-3 text-white hidden sm:inline-flex">
-      <i data-lucide="heart-pulse" style="width:12px; height:12px;"></i> VBYLD 2027 Health Delivery
-    </span>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <button type="button" class="btn btn-sm btn-outline gap-1.5 text-xs font-bold text-slate-700 bg-white" onclick="window.openGeminiSettings()">
+      <i data-lucide="sparkles" style="width:13px; height:13px; color:#ef4444;"></i> Gemini AI Settings
+    </button>
     <a class="back-btn" href="dashboard.html"><i data-lucide="arrow-left" style="width:16px;"></i> Dashboard</a>
   </div>
 </nav>
 
-<div class="container" style="max-width: 960px;">
+<div class="container" style="max-width: 980px;">
   <div class="header-section">
-    <h2>Emergency Services & Medical Triage</h2>
-    <p class="subtitle">AI Golden-Hour triage, rapid health delivery & localized district support</p>
+    <h2>Emergency Services & AI Medical Triage</h2>
+    <p class="subtitle">Multilingual Gemini 2.5 Flash clinical triage, Golden-Hour response & localized district SOS</p>
   </div>
 
   <div class="sos-card">
@@ -62,16 +62,16 @@
     <a class="sos-btn" href="tel:112"><i data-lucide="phone-call" style="z-index:2;"></i> Dial 112 — National Emergency</a>
   </div>
 
-  <!-- AI Golden-Hour Medical Triage & Dispatch Widget (Placed ABOVE emergency contacts) -->
-  <div class="weather-card" id="triage-widget" style="background:var(--glass); backdrop-filter:blur(12px); border-radius:24px; padding:2rem 2.25rem; border:1.5px solid rgba(231, 76, 60, 0.3); margin-bottom:2.5rem; box-shadow:var(--shadow-lg);">
+  <!-- AI Golden-Hour Medical Triage & Dispatch Widget -->
+  <div class="weather-card" id="triage-widget" style="background:var(--glass); backdrop-filter:blur(12px); border-radius:24px; padding:2rem 2.25rem; border:1.5px solid rgba(231, 76, 60, 0.35); margin-bottom:2.5rem; box-shadow:var(--shadow-lg);">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:14px; margin-bottom:1.5rem; padding-bottom:1.25rem; border-bottom:1px solid rgba(15,23,42,0.08);">
       <div style="display:flex; align-items:center; gap:10px;">
         <div style="width:40px; height:40px; border-radius:12px; background:#fee2e2; color:#ef4444; display:flex; align-items:center; justify-content:center;">
           <i data-lucide="heart-pulse" style="width:22px; height:22px;"></i>
         </div>
         <div>
-          <h3 style="font-size:20px; font-weight:800; color:var(--dark); margin:0;">AI Golden-Hour Medical Triage & Dispatch</h3>
-          <p style="font-size:13px; color:var(--dark-muted); margin:0;">Clinical START & Manchester Triage Engine for Mass-Gathering & Disaster Casualties</p>
+          <h3 style="font-size:20px; font-weight:800; color:var(--dark); margin:0;">AI Golden-Hour Medical Triage & Dispatch 2.0</h3>
+          <p style="font-size:13px; color:var(--dark-muted); margin:0;">Multilingual Natural Language Clinical NLP + Google Gemini 2.5 Flash</p>
         </div>
       </div>
       <div>
@@ -81,12 +81,38 @@
       </div>
     </div>
 
-    <!-- Condition Selector -->
+    <!-- Multilingual Free-Text & Voice Emergency Description -->
+    <div style="background:rgba(255,255,255,0.9); border-radius:16px; padding:1.25rem; border:1px solid rgba(15,23,42,0.08); margin-bottom:1.5rem;">
+      <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
+        <label class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+          <i data-lucide="message-square" style="width:14px; height:14px; color:#ef4444;"></i>
+          Describe Emergency in Natural Language (English, Hindi, or Manipuri):
+        </label>
+        <span class="badge badge-ghost text-[10px] font-bold" id="triage-ai-model-tag">
+          Google Gemini 2.5 Flash / Edge Clinical NLP
+        </span>
+      </div>
+
+      <div class="flex gap-2 mb-2">
+        <textarea id="triage-symptoms-text" placeholder="Describe symptoms (e.g. 'Severe chest pain after crush near bridge, unconscious with blue lips' or 'भगदड़ में सीने पर चोट, मरीज बेहोश है')..." class="textarea textarea-bordered w-full text-xs font-medium h-20 bg-white" oninput="window.debounceTriageInput()"></textarea>
+      </div>
+
+      <!-- Quick Multilingual Demo Prompts -->
+      <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+        <span class="text-slate-400 font-bold">Try Quick Demos:</span>
+        <button type="button" class="btn btn-xs btn-outline" onclick="window.applySymptomDemo('en-crush')">🇬🇧 Stampede Crush (En)</button>
+        <button type="button" class="btn btn-xs btn-outline" onclick="window.applySymptomDemo('hi-stampede')">🇮🇳 भगदड़ बेहोश (Hi)</button>
+        <button type="button" class="btn btn-xs btn-outline" onclick="window.applySymptomDemo('mni-landslide')">🇮🇳 Ching Leikhom (Mni)</button>
+        <button type="button" class="btn btn-xs btn-outline" onclick="window.applySymptomDemo('heatstroke')">☀️ Severe Heatstroke</button>
+      </div>
+    </div>
+
+    <!-- Quick Clinical Category Selector (Dropdown Fallback) -->
     <div style="margin-bottom:1.5rem;">
-      <label style="display:block; font-size:13px; font-weight:700; color:var(--dark); margin-bottom:6px;">
-        <i data-lucide="stethoscope" style="width:14px; height:14px; display:inline; color:#ef4444;"></i> Primary Casualty Condition:
+      <label style="display:block; font-size:12.5px; font-weight:700; color:var(--dark); margin-bottom:6px;">
+        <i data-lucide="stethoscope" style="width:14px; height:14px; display:inline; color:#ef4444;"></i> Or Select Standard Presentation:
       </label>
-      <select id="triage-condition-select" onchange="window.onTriageInputChange()" style="width:100%; padding:12px 14px; border-radius:12px; border:1.5px solid rgba(15,23,42,0.12); font-family:var(--font); font-size:14px; font-weight:700; background:white; outline:none;">
+      <select id="triage-condition-select" onchange="window.onTriageInputChange()" style="width:100%; padding:11px 14px; border-radius:12px; border:1.5px solid rgba(15,23,42,0.12); font-family:var(--font); font-size:13.5px; font-weight:700; background:white; outline:none;">
         <option value="stampede-trauma">Stampede Trauma / Crush Injury & Asphyxia (Kumbh Mela Chokepoint)</option>
         <option value="heatstroke-dehydration">Severe Dehydration / Heatstroke & Hyperthermia (Midday Ghat Exposure)</option>
         <option value="landslide-injury">Landslide / Rockfall Trauma & Puncture Wounds (Manipur NH-37/NH-2)</option>
@@ -126,14 +152,6 @@
       </div>
     </div>
 
-    <!-- Free-text Symptom Description -->
-    <div style="margin-bottom:1.5rem;">
-      <label style="display:block; font-size:12px; font-weight:700; color:var(--dark-muted); margin-bottom:4px;">
-        Additional Symptom Notes or Incident Coordinates Context:
-      </label>
-      <input type="text" id="triage-symptoms-text" placeholder="e.g. Trampled near Pontoon Bridge 2 exit, shallow breathing, crushing chest pain..." oninput="window.onTriageInputChange()" style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid rgba(15,23,42,0.15); font-family:var(--font); font-size:13px; outline:none; background:white;" />
-    </div>
-
     <!-- Computed Priority & Facility Info Banner -->
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px; margin-bottom:1.5rem;">
       <div style="background:rgba(255,255,255,0.9); border-radius:16px; padding:1.25rem; border-left:4px solid #ef4444; box-shadow:var(--shadow-sm);">
@@ -146,6 +164,15 @@
         <div style="font-size:11.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase;">Designated Health Camp / PHC Facility</div>
         <div style="font-size:16px; font-weight:800; color:var(--dark); margin:4px 0;" id="triage-facility-name">Kumbh Sector 4 Field Hospital & Resuscitation Center</div>
         <div style="font-size:12px; color:var(--primary); font-weight:700;" id="triage-distance-text">Estimated Distance: ~420m | Direct Corridor Priority</div>
+      </div>
+    </div>
+
+    <!-- AI Localized Reassuring Guidance Banner -->
+    <div id="localized-summary-banner" class="alert-box alert-warn mb-4" style="border-radius:14px; display:none;">
+      <i data-lucide="info" style="width:20px; height:20px; flex-shrink:0;"></i>
+      <div class="flex flex-col">
+        <span class="font-bold text-xs uppercase" id="localized-summary-lang">AI Reassurance Guidance:</span>
+        <span class="text-xs" id="localized-summary-text"></span>
       </div>
     </div>
 
@@ -233,6 +260,30 @@
     </div>
   </div>
 </div>
+
+<!-- Modal: Gemini API Key Config -->
+<dialog id="gemini-triage-modal" class="modal">
+  <div class="modal-box max-w-md bg-white p-6 rounded-2xl shadow-2xl">
+    <div class="flex justify-between items-center pb-3 border-b border-slate-200">
+      <h3 class="font-extrabold text-lg text-slate-800 flex items-center gap-2">
+        <i data-lucide="sparkles" style="width:18px; height:18px; color:#ef4444;"></i> Gemini 2.5 Flash Settings
+      </h3>
+      <form method="dialog">
+        <button class="btn btn-sm btn-circle btn-ghost">✕</button>
+      </form>
+    </div>
+    <p class="text-xs text-slate-500 mt-3 leading-relaxed">
+      Configure your free Google Gemini API Key to enable generative multilingual medical triage. If omitted, ExploreGuard runs a 100% offline edge NLP classifier in English, Hindi, and Manipuri.
+    </p>
+    <div class="mt-4">
+      <input type="password" id="gemini-triage-key-input" placeholder="AIzaSy..." class="input input-bordered w-full text-sm font-mono" />
+    </div>
+    <div class="modal-action mt-4 flex justify-between">
+      <button type="button" class="btn btn-sm btn-ghost text-xs text-red-500" onclick="window.clearGeminiKey()">Clear Key</button>
+      <button type="button" class="btn btn-sm btn-error text-xs font-bold text-white" onclick="window.saveGeminiKey()">Save Key</button>
+    </div>
+  </div>
+</dialog>
 
 <!-- External Modular JavaScript -->
 <script type="module" src="js/safety.js"></script>

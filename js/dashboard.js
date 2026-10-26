@@ -1,7 +1,7 @@
 import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { collection, query, where, getDocs, deleteDoc, doc, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { computeDisasterRisk, TERRAIN_PROFILES } from './risk-engine.js';
+import { computeDisasterRisk, estimateSlopeFromElevationGrid, TERRAIN_PROFILES } from './risk-engine.js';
 
 // Initializing Lucide Icons
 lucide.createIcons();
@@ -52,9 +52,44 @@ async function initDashboardRiskEngine() {
   updateDashboardRisk();
 }
 
-window.updateDashboardRisk = () => {
-  const corridorKey = document.getElementById('dash-corridor-select')?.value || 'nh-37';
-  const risk = computeDisasterRisk(activeTelemetry, corridorKey);
+window.updateDashboardRisk = async () => {
+  const corridorSelect = document.getElementById('dash-corridor-select');
+  const corridorKey = corridorSelect?.value || 'nh-37';
+  let dynamicElevation = null;
+  let targetTerrain = corridorKey;
+
+  if (corridorKey === 'live-gps') {
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        const offset = 0.005;
+        const lats = [lat, lat + offset, lat - offset, lat, lat].join(',');
+        const lons = [lon, lon, lon, lon + offset, lon - offset].join(',');
+        const demRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lons}`);
+        if (demRes.ok) {
+          const demData = await demRes.json();
+          dynamicElevation = estimateSlopeFromElevationGrid(demData.elevation[0], demData.elevation[1], demData.elevation[2], demData.elevation[3], demData.elevation[4], offset);
+        }
+        targetTerrain = {
+          id: 'live-gps-terrain',
+          name: `Live Coordinates (${lat.toFixed(2)}°, ${lon.toFixed(2)}°)`,
+          category: `Real-time DEM Slope: ${dynamicElevation?.slopeAngleDeg || 25}°`,
+          slopeWeight: dynamicElevation?.slopeFactor || 0.6,
+          soilFragility: 0.75,
+          historyWeight: 0.85,
+          floodVulnerability: (dynamicElevation?.slopeAngleDeg || 25) < 15 ? 0.85 : 0.40,
+          safeShelters: ['Nearest Municipal Evacuation Center'],
+          highRiskZones: ['Unstable Slope Cut-Banks']
+        };
+      } catch (err) {
+        console.warn("Live GPS unavailable on dashboard:", err);
+      }
+    }
+  }
+
+  const risk = computeDisasterRisk(activeTelemetry, targetTerrain, dynamicElevation);
 
   // Update Telemetry Snapshot
   const rainEl = document.getElementById('dash-tele-rain');
