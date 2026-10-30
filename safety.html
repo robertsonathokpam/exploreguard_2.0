@@ -35,7 +35,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Linked Modular Stylesheets -->
   <link rel="stylesheet" href="css/global.css">
-  <link rel="stylesheet" href="css/safety.css">
+  <link rel="stylesheet" href="css/safety.css?v=gemini-model-picker-2">
 <style>
 @media(max-width:600px){
   nav{flex-wrap:wrap;gap:12px} nav>div{flex-wrap:wrap}
@@ -245,10 +245,13 @@
     </p>
     <div class="mt-4">
       <label for="gemini-triage-key-input">Gemini API key</label>
-      <input autocomplete="off" type="password" id="gemini-triage-key-input" placeholder="AIzaSy..." class="input input-bordered w-full text-sm font-mono" />
+      <input autocomplete="off" type="password" id="gemini-triage-key-input" oninput="window.invalidateGeminiModels()" placeholder="AIzaSy..." class="input input-bordered w-full text-sm font-mono" />
     </div>
-    <label for="gemini-model-input">Model ID</label>
-    <input id="gemini-model-input" value="gemini-2.5-flash" spellcheck="false" autocomplete="off" />
+    <button type="button" id="gemini-models-btn" class="btn" onclick="window.loadGeminiModels()">Load available models</button>
+    <label for="gemini-model-select" style="display:block;margin-top:16px">Models returned by Google</label>
+    <select id="gemini-model-select" disabled onchange="window.chooseGeminiModel()" style="display:block;width:100%;padding:12px;margin:8px 0 16px;border:1px solid #94a3b8;border-radius:10px;background:#fff;color:#172b3a"><option>Load models first</option></select>
+    <label for="gemini-model-input" style="display:block">Selected model ID (editable)</label>
+    <input id="gemini-model-input" style="display:block;width:100%;padding:12px;margin:8px 0 16px;border:1px solid #94a3b8;border-radius:10px;background:#fff;color:#172b3a" value="gemini-2.5-flash" spellcheck="false" autocomplete="off" />
     <p class="settings-help">Use a model available to your Google AI Studio project. Test connection sends only a short test prompt, not your report; provider usage limits apply.</p>
     <p id="gemini-settings-status" role="status" aria-live="polite"></p>
     <div class="modal-action mt-4 flex justify-between">

@@ -63,6 +63,60 @@ function geminiErrorMessage(error) {
   return 'Google returned an unreadable or empty summary. Retry; no replacement summary was invented.';
 }
 
+let modelListRevision = 0;
+window.invalidateGeminiModels = () => {
+  ++modelListRevision;
+  const select = document.getElementById('gemini-model-select');
+  select.replaceChildren(); select.disabled = true;
+  document.getElementById('gemini-settings-status').textContent = 'Key changed. Load available models again, then test your selection.';
+};
+window.chooseGeminiModel = () => {
+  document.getElementById('gemini-model-input').value = document.getElementById('gemini-model-select').value;
+  document.getElementById('gemini-settings-status').textContent = 'Model selected. Test connection before saving. Listing does not confirm generation access or free quota.';
+};
+window.loadGeminiModels = async () => {
+  const key = document.getElementById('gemini-triage-key-input').value.trim();
+  const status = document.getElementById('gemini-settings-status');
+  const select = document.getElementById('gemini-model-select');
+  const button = document.getElementById('gemini-models-btn');
+  const revision = ++modelListRevision;
+  select.replaceChildren(); select.disabled = true;
+  if (!key) { status.textContent = 'Enter a Gemini API key first.'; return; }
+  button.disabled = true; status.textContent = 'Loading model names from Google…';
+  const models = new Map();
+  const tokens = new Set();
+  let pageToken = '';
+  try {
+    do {
+      const url = new URL('https://generativelanguage.googleapis.com/v1beta/models');
+      url.searchParams.set('pageSize','100');
+      if (pageToken) url.searchParams.set('pageToken',pageToken);
+      const response = await fetch(url.toString(), {headers:{'x-goog-api-key':key},signal:AbortSignal.timeout(30000)});
+      if (!response.ok) { const error = new Error('PROVIDER'); error.status=response.status; throw error; }
+      const data = await response.json();
+      if (!Array.isArray(data.models)) throw new Error('MODEL_LIST');
+      for (const model of data.models) {
+        if (typeof model.name === 'string' && /^models\/[a-zA-Z0-9._-]+$/.test(model.name) && model.supportedGenerationMethods?.includes('generateContent')) {
+          models.set(model.name.slice(7),model.name.slice(7));
+        }
+      }
+      pageToken = data.nextPageToken || '';
+      if (pageToken && (tokens.has(pageToken) || tokens.size >= 20)) throw new Error('MODEL_LIST');
+      tokens.add(pageToken);
+      if (revision !== modelListRevision || key !== document.getElementById('gemini-triage-key-input').value.trim()) return;
+    } while (pageToken);
+    const placeholder = document.createElement('option');
+    placeholder.value=''; placeholder.textContent='Choose a returned model'; select.append(placeholder);
+    for (const name of [...models.keys()].sort()) {
+      const option=document.createElement('option'); option.value=name; option.textContent=name; select.append(option);
+    }
+    select.value=''; select.disabled=models.size===0;
+    status.textContent = models.size ? `${models.size} models support generateContent. Choose a text model, test it, then save. Listing does not verify quota or summary compatibility.` : 'Google returned no models supporting generateContent for this key. Check your project in AI Studio.';
+  } catch (error) {
+    if (revision === modelListRevision) status.textContent = error.message==='MODEL_LIST' ? 'Google returned an incomplete model list. Retry loading; no model was selected.' : geminiErrorMessage(error);
+  } finally { button.disabled=false; }
+};
+
 window.testGeminiConnection = async () => {
   const status = document.getElementById('gemini-settings-status');
   const button = document.getElementById('gemini-test-btn');
@@ -259,6 +313,7 @@ window.dispatchEmergencySOS = async () => {
 window.openGeminiSettings = () => {
   const input = document.getElementById('gemini-triage-key-input');
   if (input) input.value = localStorage.getItem('gemini_api_key') || '';
+  window.invalidateGeminiModels();
   document.getElementById('gemini-model-input').value = getGeminiModel();
   document.getElementById('gemini-settings-status').textContent = 'Saving settings does not verify API access. Use Test connection to check.';
   document.getElementById('gemini-triage-modal')?.showModal();

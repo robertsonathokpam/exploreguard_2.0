@@ -253,3 +253,33 @@ test('Connection timeout and blocked response show useful errors, and re-enable 
     assert.equal(h.document.getElementById('gemini-test-btn').disabled,false);
   }
 });
+
+test('Model discovery follows pagination and offers only provider-returned generation models',async()=>{
+  const urls=[];
+  const h=harness('safety.js',{fetch:async(url,options)=>{
+    urls.push(url);assert.equal(options.headers['x-goog-api-key'],'local-test-key');
+    return {ok:true,json:async()=>urls.length===1?{models:[{name:'models/text-a',supportedGenerationMethods:['generateContent']},{name:'models/embedding-a',supportedGenerationMethods:['embedContent']}],nextPageToken:'next'}:{models:[{name:'models/text-b',supportedGenerationMethods:['generateContent']}]}};
+  }});
+  h.document.getElementById('gemini-triage-key-input').value='local-test-key';
+  await h.context.loadGeminiModels();
+  assert.equal(urls.length,2);assert.match(urls[1],/pageToken=next/);
+  assert.deepEqual(h.document.getElementById('gemini-model-select').children.map(x=>x.value),['','text-a','text-b']);
+  assert.equal(h.document.getElementById('gemini-model-select').value,'');
+  assert.equal(h.storage.getItem('gemini_model'),null);
+});
+test('Model list fails honestly and ignores results for an edited key',async()=>{
+  let release;
+  const h=harness('safety.js',{fetch:()=>new Promise(r=>{release=r})});
+  h.document.getElementById('gemini-triage-key-input').value='first';
+  const pending=h.context.loadGeminiModels();
+  h.document.getElementById('gemini-triage-key-input').value='second';h.context.invalidateGeminiModels();
+  release({ok:true,json:async()=>({models:[{name:'models/old',supportedGenerationMethods:['generateContent']}]})});
+  await pending;
+  assert.equal(h.document.getElementById('gemini-model-select').children.length,0);
+  assert.equal(h.document.getElementById('gemini-model-select').disabled,true);
+  const failed=harness('safety.js',{fetch:async()=>({ok:false,status:403})});
+  failed.document.getElementById('gemini-triage-key-input').value='test-key';
+  await failed.context.loadGeminiModels();
+  assert.match(failed.document.getElementById('gemini-settings-status').textContent,/denied access/);
+  assert.equal(failed.document.getElementById('gemini-model-select').disabled,true);
+});

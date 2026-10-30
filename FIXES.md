@@ -51,3 +51,7 @@ Suggested presentation wording: “Current prototype: incident recording and opt
 Future reply flow: user submits a request; an authorized partner reviews it; that partner explicitly acknowledges or replies; the backend stores the reply under the same request ID; the user's request-status screen displays it. Notifications and real dispatch require separate implementation and partner agreement. No acknowledgement or ETA should be simulated as real.
 
 Validation for this revision: 56 legacy assertions and 32 regression/controller tests pass. Headless Chromium verified the settings dialog at desktop and 390px, white input background/dark text, and an intercepted HTTP 429 displayed the correct actionable message. Firebase and Gemini responses were mocked in this UI test; no real key, patient data or hospital contact was used.
+
+## Model selection after HTTP 404
+
+Gemini settings now load model IDs from Google's paginated models endpoint using the locally entered key, filter for generateContent support, and require explicit selection. The picker does not invent a replacement model or save one automatically. An edited key invalidates pending list results. Listing is not proof of generation access, free quota, or summary compatibility: users must still test generation. The model ID field has explicit visible borders and the safety stylesheet URL is versioned to refresh stale cached styling. All 34 regression/controller tests and 56 legacy assertions pass; provider responses in these new tests are mocked.
