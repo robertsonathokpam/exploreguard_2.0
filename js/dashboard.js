@@ -1,3 +1,4 @@
+import {hourlyRain, escapeHtml} from './data-utils.js';
 import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { collection, query, where, getDocs, deleteDoc, doc, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -33,62 +34,19 @@ function getWeatherApiKey() {
 }
 
 // Fetch live weather telemetry for dashboard risk engine
-async function initDashboardRiskEngine() {
-  const apiKey = getWeatherApiKey();
-  if (apiKey) {
-    try {
-      const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=Imphal,IN&appid=${apiKey}&units=metric`);
-      if (res.ok) {
-        const data = await res.json();
-        activeTelemetry.rainfall = data.rain ? (data.rain['1h'] || data.rain['3h'] || 0) : 0;
-        activeTelemetry.humidity = data.main.humidity || 75;
-        activeTelemetry.windSpeed = Math.round((data.wind?.speed || 5) * 3.6);
-        activeTelemetry.pressure = data.main.pressure || 1012;
-      }
-    } catch (e) {
-      console.warn("Using baseline regional telemetry for dashboard risk engine:", e);
-    }
-  }
-  updateDashboardRisk();
-}
+async function initDashboardRiskEngine() { window.updateDashboardRisk(); }
 
 window.updateDashboardRisk = async () => {
-  const corridorSelect = document.getElementById('dash-corridor-select');
-  const corridorKey = corridorSelect?.value || 'nh-37';
-  let dynamicElevation = null;
-  let targetTerrain = corridorKey;
-
+  const corridorKey = document.getElementById('dash-corridor-select')?.value || 'nh-37';
   if (corridorKey === 'live-gps') {
-    if (navigator.geolocation) {
-      try {
-        const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        const offset = 0.005;
-        const lats = [lat, lat + offset, lat - offset, lat, lat].join(',');
-        const lons = [lon, lon, lon, lon + offset, lon - offset].join(',');
-        const demRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lons}`);
-        if (demRes.ok) {
-          const demData = await demRes.json();
-          dynamicElevation = estimateSlopeFromElevationGrid(demData.elevation[0], demData.elevation[1], demData.elevation[2], demData.elevation[3], demData.elevation[4], offset);
-        }
-        targetTerrain = {
-          id: 'live-gps-terrain',
-          name: `Live Coordinates (${lat.toFixed(2)}°, ${lon.toFixed(2)}°)`,
-          category: `Real-time DEM Slope: ${dynamicElevation?.slopeAngleDeg || 25}°`,
-          slopeWeight: dynamicElevation?.slopeFactor || 0.6,
-          soilFragility: 0.75,
-          historyWeight: 0.85,
-          floodVulnerability: (dynamicElevation?.slopeAngleDeg || 25) < 15 ? 0.85 : 0.40,
-          safeShelters: ['Nearest Municipal Evacuation Center'],
-          highRiskZones: ['Unstable Slope Cut-Banks']
-        };
-      } catch (err) {
-        console.warn("Live GPS unavailable on dashboard:", err);
-      }
+    document.getElementById('dash-risk-badge').textContent = 'Use Hazard Analysis for location-specific data';
+    for (const id of ['dash-landslide-val', 'dash-flood-val']) {
+      const el = document.getElementById(id); if (el) el.textContent = 'Unavailable';
     }
+    return;
   }
-
+  const dynamicElevation = null;
+  const targetTerrain = corridorKey;
   const risk = computeDisasterRisk(activeTelemetry, targetTerrain, dynamicElevation);
 
   // Update Telemetry Snapshot
@@ -103,7 +61,7 @@ window.updateDashboardRisk = async () => {
   const badgeEl = document.getElementById('dash-risk-badge');
   if (badgeEl) {
     badgeEl.className = `badge ${risk.badgeClass} text-white font-extrabold text-xs px-3 py-2`;
-    badgeEl.textContent = `${risk.riskLevel.toUpperCase()} RISK (${risk.compositeScore}%)`;
+    badgeEl.textContent = `SAMPLE: ${risk.riskLevel.toUpperCase()} (${risk.compositeScore}/100)`;
   }
 
   // Update Probabilities
@@ -174,25 +132,26 @@ async function loadBookings(uid) {
           <div class="booking-info">
             <div class="info-type-box">
               <span class="booking-badge ${typeBadgeClass}">
-                <i data-lucide="${typeIcon}" style="width:12px; height:12px; display:inline;"></i> ${type}
+                <i data-lucide="${typeIcon}" style="width:12px; height:12px; display:inline;"></i> ${escapeHtml(type)}
               </span>
             </div>
             <div class="route-display">
-              <span>${b.from}</span>
+              <span>${escapeHtml(b.from)}</span>
               <i data-lucide="arrow-right" style="width:16px;"></i>
-              <span>${b.to}</span>
+              <span>${escapeHtml(b.to)}</span>
             </div>
             <div class="booking-details-meta">
-              <span><i data-lucide="calendar" style="width:14px;"></i> ${b.date}</span>
-              <span><i data-lucide="users" style="width:14px;"></i> ${b.passengers} traveler(s)</span>
-              ${b.notes ? `<span><i data-lucide="message-square" style="width:14px;"></i> ${b.notes}</span>` : ''}
+              <span><i data-lucide="calendar" style="width:14px;"></i> ${escapeHtml(b.date)}</span>
+              <span><i data-lucide="users" style="width:14px;"></i> ${escapeHtml(b.passengers)} traveler(s)</span>
+              ${b.notes ? `<span><i data-lucide="message-square" style="width:14px;"></i> ${escapeHtml(b.notes)}</span>` : ''}
             </div>
           </div>
-          <button class="cancel-btn" onclick="cancelBooking('${docSnap.id}')">
+          <button class="cancel-btn" data-booking-id="${escapeHtml(docSnap.id)}">
             <i data-lucide="trash-2" style="width:14px;"></i> Cancel
           </button>
         </div>`;
     });
+    list.querySelectorAll('[data-booking-id]').forEach(button => button.addEventListener('click', () => window.cancelBooking(button.dataset.bookingId)));
     lucide.createIcons();
   } catch (e) {
     console.error("Error loading bookings:", e);

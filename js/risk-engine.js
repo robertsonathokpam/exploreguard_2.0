@@ -1,3 +1,10 @@
+// Inputs must fail explicitly rather than produce NaN with a reassuring risk label.
+function finiteInput(value, name, min = -Infinity, max = Infinity) {
+  if (value === null || value === '' || typeof value === 'boolean' || !Number.isFinite(Number(value))
+      || Number(value) < min || Number(value) > max) throw new RangeError(`Invalid ${name}`);
+  return Number(value);
+}
+
 /**
  * ExploreGuard AI Disaster Risk & Triage Engine 2.0
  * Hack for Social Cause (VBYLD 2027)
@@ -85,12 +92,15 @@ export const TERRAIN_PROFILES = {
  * @param {number} offsetDeg - Angular offset in degrees (default 0.005 ~= 556m)
  * @returns {Object} { slopeAngleDeg, slopeFactor, deltaNS, deltaEW, avgElev }
  */
-export function estimateSlopeFromElevationGrid(centerElev, northElev, southElev, eastElev, westElev, offsetDeg = 0.005) {
+export function estimateSlopeFromElevationGrid(centerElev, northElev, southElev, eastElev, westElev, offsetDeg = 0.005, latitude = 0) {
+  [centerElev, northElev, southElev, eastElev, westElev].forEach(v => finiteInput(v, 'elevation'));
+  finiteInput(offsetDeg, 'elevation offset', 0.000001, 1);
+  finiteInput(latitude, 'latitude', -89.9, 89.9);
   const dMeters = offsetDeg * 2 * 111320; // ~1113.2 meters across
   const deltaNS = Math.abs(Number(northElev) - Number(southElev));
   const deltaEW = Math.abs(Number(eastElev) - Number(westElev));
   const rise = Math.sqrt(deltaNS * deltaNS + deltaEW * deltaEW);
-  const gradient = rise / Math.max(1, dMeters);
+  const gradient = Math.hypot(deltaNS / dMeters, deltaEW / (dMeters * Math.cos(latitude * Math.PI / 180)));
   const slopeAngleDeg = Math.round(Math.atan(gradient) * (180 / Math.PI) * 10) / 10;
   // Normalized slope factor between 0.05 and 1.0 (45 degrees or more = 1.0)
   const slopeFactor = Math.max(0.05, Math.min(1.0, slopeAngleDeg / 45));
@@ -126,7 +136,7 @@ export function computeDisasterRisk(weather = {}, terrainOrCustom = 'nh-37', dyn
       soilFragility: terrainOrCustom.soilFragility ?? 0.70,
       historyWeight: terrainOrCustom.historyWeight ?? 0.80,
       floodVulnerability: terrainOrCustom.floodVulnerability ?? 0.50,
-      safeShelters: terrainOrCustom.safeShelters || ['Designated Municipal High Ground', 'Primary District Relief Camp'],
+      safeShelters: terrainOrCustom.safeShelters || [],
       highRiskZones: terrainOrCustom.highRiskZones || ['Unstable Low-lying Slopes', 'River Confluence Culverts']
     };
   } else {
@@ -141,6 +151,11 @@ export function computeDisasterRisk(weather = {}, terrainOrCustom = 'nh-37', dyn
   const windSpeed = Number(weather.windSpeed ?? 15);  // km/h
   const pressure = Number(weather.pressure ?? 1013);  // hPa
 
+  finiteInput(weather.rainfall ?? 0, 'rainfall', 0, 2000);
+  finiteInput(weather.humidity ?? 60, 'humidity', 0, 100);
+  finiteInput(weather.windSpeed ?? 15, 'wind speed', 0, 1000);
+  finiteInput(weather.pressure ?? 1013, 'pressure', 100, 1200);
+  ['slopeWeight', 'soilFragility', 'historyWeight', 'floodVulnerability'].forEach(key => finiteInput(terrain[key], key, 0, 1));
   // 1. Normalized Weather Indices
   // Rainfall index: 0 mm -> 0, 25 mm/h -> 1.0, 60+ mm/h -> up to 2.5 (cloudburst)
   const rainNorm = Math.min(2.5, rainfall / 25);
@@ -387,6 +402,10 @@ export function computeCrowdRisk(sectorId = 'sector-a', customCountOverride = nu
   }
 
   const count = customCountOverride !== null ? Number(customCountOverride) : sector.currentCount;
+  finiteInput(customCountOverride !== null ? customCountOverride : sector.currentCount, 'headcount', 0, 100000000);
+  finiteInput(sector.areaSqM, 'area', 0.000001);
+  finiteInput(sector.inflowPerMin, 'inflow', 0);
+  finiteInput(sector.outflowPerMin, 'outflow', 0);
   const density = +(count / sector.areaSqM).toFixed(2); // persons / m²
   const flowRatio = +(sector.inflowPerMin / Math.max(1, sector.outflowPerMin)).toFixed(2);
 
@@ -401,7 +420,7 @@ export function computeCrowdRisk(sectorId = 'sector-a', customCountOverride = nu
     badgeColor = '#ef4444';
     badgeClass = 'badge-error';
     bottleneckTriggered = true;
-    decongestionRouting = `CRITICAL DECONGESTION ACTIVATED: Inflow exceeds egress by ${(flowRatio * 100).toFixed(0)}%. Close barrier gates at inflow corridor. Divert oncoming pilgrim surge through ${sector.evacuationRoutes[0]} toward ${sector.evacuationRoutes[1]}. Dispatch Quick Reaction Force (QRF).`;
+    decongestionRouting = `CRITICAL DECONGESTION ACTIVATED: Inflow exceeds egress by ${Math.max(0, (flowRatio - 1) * 100).toFixed(0)}%. Close barrier gates at inflow corridor. Divert oncoming pilgrim surge through ${sector.evacuationRoutes[0]} toward ${sector.evacuationRoutes[1]}. Dispatch Quick Reaction Force (QRF).`;
   } else if (density >= 2.2 || flowRatio > 1.3) {
     stampedeRisk = 'Moderate';
     badgeColor = '#f59e0b';
@@ -535,8 +554,14 @@ export function classifySymptomsNLP(text = '') {
   if (/[\u0900-\u097F]/.test(raw)) detectedLang = 'hi';
   else if (/[\uABC0-\uABFF]/.test(raw) || /thamoi|kanba|asokpa|leikhom|thawa/.test(raw)) detectedLang = 'mni';
 
+  // This keyword matcher cannot safely interpret negation. Return unknown for review.
+  const needsReview = /\b(no|not|without|denies|denied|never)\b|नहीं|नही/.test(raw);
+  if (needsReview) return {conditionId: null, consciousness: 'unknown', severeBleeding: false,
+    breathingDifficulty: false, pulseRate: null, languageDetected: detectedLang,
+    confidenceScore: 0, needsReview: true};
+
   // Condition scoring
-  let bestMatch = 'stampede-trauma';
+  let bestMatch = null;
   let highestScore = 0;
 
   for (const [key, config] of Object.entries(TRIAGE_CATEGORIES)) {
@@ -564,7 +589,7 @@ export function classifySymptomsNLP(text = '') {
     consciousness,
     severeBleeding: bleedingMatch,
     breathingDifficulty: breathingMatch,
-    pulseRate: (unconsciousMatch || bleedingMatch) ? 130 : 80,
+    pulseRate: null, // A text keyword is not a measured pulse.
     languageDetected: detectedLang,
     confidenceScore: highestScore > 0 ? Math.min(0.95, 0.5 + highestScore * 0.1) : 0.4
   };
@@ -583,7 +608,7 @@ export function computeMedicalTriage(input = {}) {
     consciousness = 'conscious',
     breathingDifficulty = false,
     severeBleeding = false,
-    pulseRate = 80
+    pulseRate = null
   } = input;
 
   // If free-text symptoms are provided, run NLP classifier to auto-detect condition & vitals if not explicitly set
@@ -596,11 +621,24 @@ export function computeMedicalTriage(input = {}) {
     else if (nlp.consciousness === 'altered' && consciousness !== 'unconscious') consciousness = 'altered';
     if (nlp.severeBleeding) severeBleeding = true;
     if (nlp.breathingDifficulty) breathingDifficulty = true;
-    if (nlp.pulseRate > pulseRate) pulseRate = nlp.pulseRate;
+
   }
 
-  conditionId = conditionId || 'stampede-trauma';
-  const baseConfig = TRIAGE_CATEGORIES[conditionId] || TRIAGE_CATEGORIES['stampede-trauma'];
+  const baseConfig = TRIAGE_CATEGORIES[conditionId];
+  if (!baseConfig || (symptomsText && classifySymptomsNLP(symptomsText).needsReview)) {
+    return {
+      triageId: `TRG-${globalThis.crypto.randomUUID()}`, conditionId: null,
+      conditionTitle: 'Unclassified request', priority: 'UNKNOWN', priorityLabel: 'Needs human review',
+      badgeColor: '#64748b', badgeClass: 'badge-ghost', goldenHourMinutes: null,
+      urgencyDescription: 'No reliable category available from these inputs.',
+      clinicalReason: 'Unknown or ambiguous input. No clinical conclusion established.',
+      firstAidSteps: [], recommendedFacility: 'Not assigned',
+      vitalsRecorded: {consciousness: input.consciousness ?? 'unknown', severeBleeding: input.severeBleeding ?? null,
+        breathingDifficulty: input.breathingDifficulty ?? null, pulseRate: input.pulseRate ?? null},
+      symptomsDescription: symptomsText, timestamp: new Date().toISOString()
+    };
+  }
+  if (pulseRate !== null) finiteInput(pulseRate, 'pulse rate', 1, 300);
   
   // Dynamic Priority Escalation
   let priority = baseConfig.defaultPriority;
@@ -609,7 +647,7 @@ export function computeMedicalTriage(input = {}) {
   if (consciousness === 'unconscious' || severeBleeding || (breathingDifficulty && conditionId === 'cardiac-respiratory')) {
     priority = 'RED';
     reason = 'Life-threatening physiological crisis detected: Compromised airway, severe bleeding, or unconsciousness.';
-  } else if (consciousness === 'altered' || breathingDifficulty || pulseRate > 120 || pulseRate < 45) {
+  } else if (consciousness === 'altered' || breathingDifficulty || (pulseRate !== null && (pulseRate > 120 || pulseRate < 45))) {
     priority = (priority === 'GREEN') ? 'YELLOW' : priority;
     reason = 'Elevated clinical risk: Altered consciousness, dyspnea, or abnormal hemodynamics.';
   }
@@ -649,7 +687,7 @@ export function computeMedicalTriage(input = {}) {
       consciousness,
       breathingDifficulty: Boolean(breathingDifficulty),
       severeBleeding: Boolean(severeBleeding),
-      pulseRate: Number(pulseRate)
+      pulseRate: pulseRate === null ? null : Number(pulseRate)
     },
     symptomsDescription: symptomsText || baseConfig.title,
     timestamp: new Date().toISOString()
@@ -665,7 +703,7 @@ export function generateOfflineDisasterBriefing(riskResult) {
   const dateStr = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   const isCritical = riskResult.riskLevel === 'Critical';
   
-  return `📢 OFFICIAL DISASTER MITIGATION BROADCAST BULLETIN
+  return `📢 EXPERIMENTAL SCENARIO SUMMARY — NOT AN OFFICIAL WARNING
 Issued: ${dateStr} | Status: ${riskResult.riskLevel.toUpperCase()} THREAT LEVEL
 
 📍 TARGET SECTOR: ${riskResult.terrainName} (${riskResult.category})
@@ -678,7 +716,7 @@ METEOROLOGICAL & GEOLOGICAL TELEMETRY:
 
 DIRECTIVES FOR TRAVELERS & FIRST RESPONDERS:
 ${isCritical ? '1. 🛑 IMMEDIATE TRANSIT HALT: Do not proceed past transit checkpoints.' : '1. ⚠️ CAUTION ADVISORY: Maintain safe vehicle separation and reduce speeds.'}
-2. 🛡️ EVACUATION SHELTER: Proceed to ${riskResult.safeShelters[0]}.
+2. Mapped or sample facilities (unverified): ${riskResult.safeShelters.join(", ") || "Unavailable"}. Confirm official shelter information locally.
 3. 🚫 AVOID CHOKEPOINTS: Steer clear of ${riskResult.highRiskZones.join(' and ')}.
-4. 📻 EMERGENCY CHANNEL: Monitor district disaster frequency 112 / 108. Continuous satellite telemetry sync active.`;
+4. Check official local advisories. No responder or satellite dispatch is connected to this prototype.`;
 }

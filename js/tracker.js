@@ -29,7 +29,30 @@ let customVenueConfig = {
 
 // Computer Vision Model State (Lazy-Loaded)
 let cocoModel = null;
-let isModelLoading = false;
+let visionSource = null;
+let visionRevision = 0;
+let visionBusy = false;
+
+function setVisionSource(source, isSample = false) {
+  const width = source.naturalWidth || source.videoWidth || source.width;
+  const height = source.naturalHeight || source.videoHeight || source.height;
+  if (!width || !height) throw new Error('Image is not ready');
+  const scale = Math.min(1, 1600 / Math.max(width, height));
+  visionSource = document.createElement('canvas');
+  visionSource.width = Math.round(width * scale);
+  visionSource.height = Math.round(height * scale);
+  visionSource.getContext('2d').drawImage(source, 0, 0, visionSource.width, visionSource.height);
+  visionRevision++;
+  const canvas = document.getElementById('vision-canvas');
+  canvas.width = visionSource.width;
+  canvas.height = visionSource.height;
+  canvas.getContext('2d').drawImage(visionSource, 0, 0);
+  document.getElementById('vision-detected-count').textContent = 'Not scanned';
+  document.getElementById('vision-inference-time').textContent = '—';
+  document.getElementById('vision-density').textContent = 'Density unavailable until this image is scanned.';
+  document.getElementById('vision-model-status').textContent = isSample
+    ? 'Illustrated sample — not an accuracy benchmark' : 'Image ready';
+}
 
 onAuthStateChanged(auth, (user) => {
   if (!user) { window.location.href = 'login.html'; return; }
@@ -191,7 +214,13 @@ window.applyCrowdPreset = (preset) => {
 
 function updateCrowdTelemetryUI() {
   const currentVenue = (activeVenueId === 'custom') ? customVenueConfig : CROWD_VENUES[activeVenueId];
-  const data = computeCrowdRisk(activeSectorId, activeCustomHeadcount, currentVenue);
+  let data;
+  try { data = computeCrowdRisk(activeSectorId, activeCustomHeadcount, currentVenue); }
+  catch (error) {
+    const tag = document.getElementById('crowd-scenario-tag');
+    if (tag) tag.textContent = 'Invalid scenario input — check count, area and flow';
+    return;
+  }
   const sector = currentVenue.sectors[activeSectorId] || Object.values(currentVenue.sectors)[0];
 
   // Title and headers
@@ -311,7 +340,7 @@ async function getOrInitCocoModel() {
   const statusEl = document.getElementById('vision-model-status');
 
   if (overlay) overlay.style.display = 'flex';
-  if (loadingText) loadingText.textContent = 'Loading TensorFlow.js MobileNetV2 Lite Model (~1.8MB)...';
+  if (loadingText) loadingText.textContent = 'Loading person-detection model...';
   if (statusEl) statusEl.textContent = 'Loading Model...';
 
   try {
@@ -323,8 +352,8 @@ async function getOrInitCocoModel() {
       throw new Error("COCO-SSD library not loaded from CDN");
     }
   } catch (e) {
-    console.warn("Failed to load online COCO-SSD, activating resilient fallback vision engine:", e);
-    if (statusEl) statusEl.textContent = 'Edge Heuristic Vision Active';
+    console.warn("Person-detection model could not load:", e);
+    if (statusEl) statusEl.textContent = 'Model unavailable — retry online';
     return null;
   } finally {
     if (overlay) overlay.style.display = 'none';
@@ -335,6 +364,7 @@ async function getOrInitCocoModel() {
 function drawSampleCrowdToCanvas(preset = 'preset-1') {
   const canvas = document.getElementById('vision-canvas');
   if (!canvas) return;
+  canvas.width = 600; canvas.height = 280;
   const ctx = canvas.getContext('2d');
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -364,7 +394,7 @@ function drawSampleCrowdToCanvas(preset = 'preset-1') {
   const personCount = (preset === 'preset-1') ? 18 : (preset === 'preset-2') ? 26 : 10;
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 12px Plus Jakarta Sans, sans-serif';
-  ctx.fillText(`CAM-FEED: ${preset.toUpperCase()} | HIGHWAY MONITORING ARTERY`, 16, 24);
+  ctx.fillText(`ILLUSTRATED SAMPLE: ${preset.toUpperCase()}`, 16, 24);
 
   // Draw distinct human figures
   for (let i = 0; i < personCount; i++) {
@@ -395,6 +425,7 @@ function drawSampleCrowdToCanvas(preset = 'preset-1') {
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
   ctx.lineWidth = 1;
   ctx.strokeRect(20, 40, canvas.width - 40, canvas.height - 55);
+  setVisionSource(canvas, true);
 }
 
 window.loadVisionPreset = (preset) => {
@@ -405,123 +436,100 @@ window.loadVisionPreset = (preset) => {
 window.onVisionFileUploaded = (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.getElementById('vision-canvas');
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      window.runVisionDetection();
-    };
-    img.src = e.target.result;
+  if (!file.type.startsWith('image/')) { alert('Choose an image file.'); return; }
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    setVisionSource(img);
+    URL.revokeObjectURL(url);
+    window.runVisionDetection();
   };
-  reader.readAsDataURL(file);
+  img.onerror = () => { URL.revokeObjectURL(url); alert('This image could not be opened.'); };
+  img.src = url;
 };
 
-// Single-Frame Webcam Snapshot (Shuts off immediately to prevent battery drain & overheating)
 window.captureWebcamSnapshot = async () => {
   const video = document.getElementById('webcam-video');
-  const canvas = document.getElementById('vision-canvas');
-  if (!navigator.mediaDevices?.getUserMedia) {
-    alert("Camera hardware not supported on this browser.");
-    return;
-  }
-
+  let stream;
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera unavailable');
+    stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment', width: {ideal: 1280}, height: {ideal: 720}}});
     video.srcObject = stream;
     await video.play();
-
-    // Wait a brief moment for sensor auto-exposure, grab 1 frame, then terminate stream
-    setTimeout(() => {
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      stream.getTracks().forEach(track => track.stop());
-      window.runVisionDetection();
-    }, 400);
-  } catch (err) {
-    alert("Webcam permission denied or camera device busy.");
+    await new Promise(resolve => setTimeout(resolve, 400));
+    setVisionSource(video);
+  } catch (error) {
+    alert('Camera unavailable or permission denied. You can upload a photo instead.');
+    return;
+  } finally {
+    stream?.getTracks().forEach(track => track.stop());
+    video.srcObject = null;
   }
+  await window.runVisionDetection();
 };
 
-// Run AI Object Detection Scan
 window.runVisionDetection = async () => {
+  if (visionBusy) return;
   const canvas = document.getElementById('vision-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-
-  const t0 = performance.now();
-  const model = await getOrInitCocoModel();
-
-  let detectedPeople = [];
-  if (model) {
-    try {
-      const predictions = await model.detect(canvas);
-      detectedPeople = predictions.filter(p => p.class === 'person' && p.score >= 0.35);
-    } catch (e) {
-      console.warn("Detection inference error:", e);
+  const status = document.getElementById('vision-model-status');
+  const count = document.getElementById('vision-detected-count');
+  const time = document.getElementById('vision-inference-time');
+  const button = document.getElementById('btn-run-vision-scan');
+  if (!visionSource) { status.textContent = 'Upload a photo or take a snapshot first'; return; }
+  const revision = visionRevision;
+  const source = visionSource;
+  visionBusy = true;
+  button.disabled = true;
+  count.textContent = 'Scanning…';
+  time.textContent = '—';
+  canvas.getContext('2d').drawImage(source, 0, 0);
+  try {
+    const model = await getOrInitCocoModel();
+    if (!model) throw new Error('Model unavailable');
+    if (revision !== visionRevision) return;
+    status.textContent = 'Scanning image…';
+    const started = performance.now();
+    // Explicit limit and threshold. This does not guarantee dense-crowd recall.
+    const predictions = await model.detect(source, 200, 0.35);
+    if (revision !== visionRevision) return;
+    const people = predictions.filter(p => p.class === 'person' && Number.isFinite(p.score)
+      && p.score >= 0.35 && Array.isArray(p.bbox) && p.bbox.length === 4
+      && p.bbox.every(Number.isFinite) && p.bbox[2] > 0 && p.bbox[3] > 0);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(source, 0, 0);
+    ctx.lineWidth = Math.max(2, canvas.width / 500);
+    ctx.font = `${Math.max(12, Math.round(canvas.width / 65))}px sans-serif`;
+    people.forEach(p => {
+      const [x, y, w, h] = p.bbox;
+      ctx.strokeStyle = '#10b981'; ctx.strokeRect(x, y, w, h);
+      const label = `Person ${Math.round(p.score * 100)}%`;
+      const labelWidth = ctx.measureText(label).width + 8;
+      const labelY = Math.max(18, y);
+      ctx.fillStyle = '#064e3b'; ctx.fillRect(x, labelY - 18, labelWidth, 20);
+      ctx.fillStyle = '#ffffff'; ctx.fillText(label, x + 4, labelY - 3);
+    });
+    count.textContent = `${people.length} detected`;
+    time.textContent = `${Math.round(performance.now() - started)} ms`;
+    status.textContent = people.length ? 'Complete — visible detections only' : 'No people detected — people may still be missed';
+    if (predictions.length >= 200) status.textContent += '; detection limit reached';
+    const area = Number(document.getElementById('vision-area')?.value);
+    const density = document.getElementById('vision-density');
+    if (density) density.textContent = Number.isFinite(area) && area > 0
+      ? `Estimated visible density: ${(people.length / area).toFixed(2)} detections/m² (requires measured camera area)`
+      : 'Density unavailable: enter the measured ground area visible in this image.';
+  } catch (error) {
+    console.warn('Vision scan failed:', error);
+    if (revision === visionRevision) {
+      count.textContent = 'Unavailable';
+      status.textContent = 'Scan failed — check connection/model and retry';
+      time.textContent = '—';
+      document.getElementById('vision-density').textContent = 'Density unavailable';
     }
-  }
-
-  // Fallback edge heuristic if canvas was drawn procedurally or model was in fallback
-  if (detectedPeople.length === 0) {
-    // Generate intelligent boundary boxes across person centroids on canvas
-    const sampleBoxCount = Math.floor(12 + Math.random() * 10);
-    for (let i = 0; i < sampleBoxCount; i++) {
-      const col = i % 7;
-      const row = Math.floor(i / 7);
-      const x = 38 + col * 75 + ((row % 2) * 35);
-      const y = 60 + row * 65;
-      detectedPeople.push({
-        bbox: [x, y, 26, 60],
-        score: +(0.85 + Math.random() * 0.12).toFixed(2),
-        class: 'person'
-      });
-    }
-  }
-
-  const inferenceDuration = Math.round(performance.now() - t0);
-
-  // Draw bounding boxes on canvas
-  detectedPeople.forEach((p, idx) => {
-    const [x, y, w, h] = p.bbox;
-    ctx.strokeStyle = '#10b981'; // Emerald
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, w, h);
-
-    // Label tag
-    ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
-    ctx.fillRect(x, Math.max(0, y - 18), 75, 16);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 10px Plus Jakarta Sans, sans-serif';
-    ctx.fillText(`Person ${Math.round(p.score * 100)}%`, x + 4, Math.max(12, y - 6));
-  });
-
-  // Update Metrics
-  const countEl = document.getElementById('vision-detected-count');
-  if (countEl) countEl.textContent = `${detectedPeople.length} People`;
-
-  const timeEl = document.getElementById('vision-inference-time');
-  if (timeEl) timeEl.textContent = `${inferenceDuration} ms`;
-
-  const statusEl = document.getElementById('vision-model-status');
-  if (statusEl) statusEl.textContent = 'Inference Complete';
-
-  // Sync to Sector Density Engine if toggle enabled
-  const syncToggle = document.getElementById('sync-vision-toggle');
-  if (syncToggle && syncToggle.checked) {
-    // Scale sample detection count up to sector scale factor
-    // Each camera person detected represents ~1,250 people in the larger 6,000 m² sector
-    const scaledHeadcount = detectedPeople.length * 1250;
-    activeCustomHeadcount = scaledHeadcount;
-    const slider = document.getElementById('crowd-slider');
-    if (slider) slider.value = scaledHeadcount;
-    const tag = document.getElementById('crowd-scenario-tag');
-    if (tag) tag.textContent = `Neural Edge Vision Sync (${detectedPeople.length} detected)`;
-    updateCrowdTelemetryUI();
+  } finally {
+    visionBusy = false;
+    button.disabled = false;
+    // A newly selected image supersedes an in-flight scan.
+    if (revision !== visionRevision) window.runVisionDetection();
   }
 };
 
@@ -581,7 +589,8 @@ window.toggleSharing = async () => {
       { enableHighAccuracy: true, maximumAge: 10000 }
     );
   } else {
-    if (watchId) navigator.geolocation.clearWatch(watchId);
+    if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+    watchId = null;
     if (currentUser) await deleteDoc(doc(db, 'locations', currentUser.uid));
 
     status.innerHTML = `<i data-lucide="info" style="width:16px; height:16px; display:inline;"></i> Telemetry stream stopped. Sensor details deleted.`;

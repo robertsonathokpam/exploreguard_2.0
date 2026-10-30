@@ -4,7 +4,7 @@
   "description": "ExploreGuard - AI Disaster Mitigation, Kumbh Mela Crowd Telemetry & Golden-Hour Health Service Delivery (VBYLD 2027)",
   "type": "module",
   "scripts": {
-    "test": "node tests/test_risk_engine.js"
+    "test": "node tests/test_risk_engine.js && node --test tests/regressions.test.js tests/workflows.test.js"
   },
   "keywords": [
     "disaster-mitigation",

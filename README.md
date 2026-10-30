@@ -1,3 +1,5 @@
+> **Prototype status (30 October 2026):** Experimental scoring and person detection, not a validated emergency service. The fixes on `fix/honest-prototype-results` remove fabricated camera detections and false dispatch confirmations. See [FIXES.md](FIXES.md) for changes, test scope, setup and remaining work. Earlier feature descriptions below describe aspirations where they conflict with this status. No ambulance or PHC integration is active.
+
 # ExploreGuard 2.0 — AI Disaster Mitigation, Mass Gathering Crowd Telemetry & Golden-Hour Health Delivery
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)

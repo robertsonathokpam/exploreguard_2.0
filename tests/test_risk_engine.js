@@ -121,7 +121,7 @@ assert(alpineRisk.metrics.slopeAngleDeg === demGrid.slopeAngleDeg, 'Dynamic slop
 
 // Test offline disaster briefing generation
 const briefing = generateOfflineDisasterBriefing(alpineRisk);
-assert(briefing.includes('OFFICIAL DISASTER MITIGATION BROADCAST BULLETIN'), 'Generates structured emergency broadcast bulletin');
+assert(briefing.includes('EXPERIMENTAL SCENARIO SUMMARY'), 'Generates structured emergency broadcast bulletin');
 assert(briefing.includes('Gotthard Transit Emergency Bunker'), 'Evacuation shelter included in briefing text');
 
 // 4. Test Kumbh Mela & Multi-Venue Crowd Telemetry
@@ -232,13 +232,13 @@ assert(minorTriage.firstAidSteps.some(step => step.includes('R.I.C.E.')), 'R.I.C
 const nlpDrivenTriage = computeMedicalTriage({
   symptomsText: 'मरीज बेहोश है, सीने में भयानक दर्द और सांस नहीं आ रही है'
 });
-assert(nlpDrivenTriage.priority === 'RED', 'Hindi narrative automatically evaluates to RED priority');
-assert(nlpDrivenTriage.conditionId === 'cardiac-respiratory', 'Cardiac/respiratory distress recognized from Hindi symptoms');
+assert(nlpDrivenTriage.priority === 'UNKNOWN', 'Ambiguous negation requires human review');
+assert(nlpDrivenTriage.conditionId === null, 'Ambiguous text is not assigned a diagnosis');
 
 console.log('\n====================================================================');
 console.log(`📊 Test Results: ${passCount} Passed, ${failCount} Failed`);
 if (failCount === 0) {
-  console.log('🎉 ALL 41 VALIDATION TESTS PASSED SUCCESSFULLY! Ready for Hackathon.');
+  console.log(`All ${passCount} calculation assertions passed. Clinical and field validation remain pending.`);
   console.log('====================================================================');
   process.exit(0);
 } else {

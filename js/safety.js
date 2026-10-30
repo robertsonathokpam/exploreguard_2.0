@@ -1,6 +1,6 @@
 import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { collection, addDoc, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { writeBatch, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { computeMedicalTriage, classifySymptomsNLP, TRIAGE_CATEGORIES } from './risk-engine.js';
 
 // Initializing Lucide Icons
@@ -9,6 +9,8 @@ lucide.createIcons();
 let currentUser = null;
 let currentTriageAssessment = null;
 let debounceTimer = null;
+let assessmentRevision = 0;
+let submitting = false;
 
 onAuthStateChanged(auth, (user) => {
   if (!user) window.location.href = 'login.html';
@@ -42,6 +44,8 @@ window.applySymptomDemo = (demoType) => {
 };
 
 window.debounceTriageInput = () => {
+  ++assessmentRevision;
+  currentTriageAssessment = null;
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     window.onTriageInputChange();
@@ -51,7 +55,9 @@ window.debounceTriageInput = () => {
 // -------------------------------------------------------------
 // AI GOLDEN-HOUR MEDICAL TRIAGE LOGIC (Gemini 2.5 Flash + Edge NLP)
 // -------------------------------------------------------------
-window.onTriageInputChange = async () => {
+window.onTriageInputChange = async (useCloud = false) => {
+  const revision = ++assessmentRevision;
+  currentTriageAssessment = null;
   const conditionSelect = document.getElementById('triage-condition-select');
   const consciousnessEl = document.getElementById('triage-consciousness');
   const severeBleedingEl = document.getElementById('triage-severe-bleeding');
@@ -64,7 +70,7 @@ window.onTriageInputChange = async () => {
   // Check if Gemini API Key is available
   const geminiKey = getGeminiApiKey();
 
-  if (geminiKey && symptomsText.length > 5) {
+  if (useCloud === true && geminiKey && symptomsText.length > 5) {
     if (tagEl) {
       tagEl.textContent = 'Contacting Gemini 2.5 Flash...';
       tagEl.className = 'badge badge-warning text-[10px] font-bold text-white animate-pulse';
@@ -84,6 +90,7 @@ Return ONLY valid JSON with this exact schema:
 
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
         method: 'POST',
+        signal: AbortSignal.timeout(15000),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
@@ -96,24 +103,32 @@ Return ONLY valid JSON with this exact schema:
         const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (jsonText) {
           const parsed = JSON.parse(jsonText);
+          if (revision !== assessmentRevision) return;
+          if (!['RED', 'YELLOW', 'GREEN'].includes(parsed.triage_priority)
+            || typeof parsed.suspected_condition !== 'string'
+            || typeof parsed.localized_summary !== 'string'
+            || !Array.isArray(parsed.first_aid_steps)
+            || !parsed.first_aid_steps.every(step => typeof step === 'string')) {
+            throw new Error('Invalid AI response');
+          }
           currentTriageAssessment = {
             triageId: `TRG-GEMINI-${Date.now().toString(36).toUpperCase()}`,
             conditionId: 'generative-ai-triage',
             conditionTitle: parsed.suspected_condition || 'Mass-Gathering Casualty',
             priority: parsed.triage_priority || 'RED',
-            priorityLabel: `${parsed.triage_priority} - Immediate`,
+            priorityLabel: `${parsed.triage_priority} - Experimental`,
             badgeColor: parsed.triage_priority === 'RED' ? '#ef4444' : parsed.triage_priority === 'YELLOW' ? '#f59e0b' : '#10b981',
             badgeClass: parsed.triage_priority === 'RED' ? 'badge-error' : parsed.triage_priority === 'YELLOW' ? 'badge-warning' : 'badge-success',
-            goldenHourMinutes: parsed.golden_hour_window || 20,
+            goldenHourMinutes: null,
             urgencyDescription: `Gemini 2.5 Flash Assessment: ${parsed.suspected_condition}. Immediate clinical management recommended.`,
             clinicalReason: parsed.localized_summary,
             firstAidSteps: parsed.first_aid_steps,
-            recommendedFacility: 'Tertiary Trauma Center & Resuscitation Bay',
+            recommendedFacility: 'Not assigned',
             vitalsRecorded: {
-              consciousness: consciousnessEl?.value || 'unconscious',
+              consciousness: consciousnessEl?.value || 'unknown',
               breathingDifficulty: breathingDiffEl?.checked || false,
               severeBleeding: severeBleedingEl?.checked || false,
-              pulseRate: Number(pulseEl?.value || 120)
+              pulseRate: pulseEl?.value ? Number(pulseEl.value) : null
             },
             symptomsDescription: symptomsText,
             localizedSummary: parsed.localized_summary,
@@ -134,24 +149,29 @@ Return ONLY valid JSON with this exact schema:
     }
   }
 
-  // Edge Multilingual NLP Fallback (0ms, 100% reliable, zero server overhead)
-  const conditionId = conditionSelect?.value || 'stampede-trauma';
-  const consciousness = consciousnessEl?.value || 'unconscious';
+  // Experimental local keyword fallback; no clinical validation.
+  if (revision !== assessmentRevision) return;
+  const conditionId = conditionSelect?.value || 'auto';
+  const consciousness = consciousnessEl?.value || 'unknown';
   const severeBleeding = severeBleedingEl?.checked || false;
   const breathingDifficulty = breathingDiffEl?.checked || false;
-  const pulseRate = Number(pulseEl?.value || 80);
+  const pulseRate = pulseEl?.value ? Number(pulseEl.value) : null;
 
-  currentTriageAssessment = computeMedicalTriage({
+  try { currentTriageAssessment = computeMedicalTriage({
     conditionId,
     consciousness,
     severeBleeding,
     breathingDifficulty,
     pulseRate,
     symptomsText
-  });
+  }); } catch (error) {
+    if (tagEl) tagEl.textContent = 'Invalid input — check the recorded measurements';
+    document.getElementById('triage-priority-badge').textContent = 'Assessment unavailable';
+    return;
+  }
 
   if (tagEl) {
-    tagEl.textContent = 'Edge Clinical NLP Active (Offline Ready)';
+    tagEl.textContent = 'Experimental local rules — clinical review pending';
     tagEl.className = 'badge badge-ghost text-[10px] font-bold';
   }
 
@@ -164,19 +184,19 @@ function renderTriageUI(data) {
   if (badgeEl) {
     badgeEl.className = `badge ${data.badgeClass} text-white font-black text-sm p-3 flex items-center gap-1.5 shadow-sm`;
     let icon = (data.priority === 'RED') ? 'alert-octagon' : (data.priority === 'YELLOW') ? 'alert-triangle' : 'check-circle';
-    badgeEl.innerHTML = `<i data-lucide="${icon}" style="width:14px; height:14px;"></i> ${data.priorityLabel.toUpperCase()} (P${data.priority === 'RED' ? '1' : data.priority === 'YELLOW' ? '2' : '3'})`;
+    badgeEl.textContent = `${data.priorityLabel} — unvalidated demo`;
   }
 
   // Update Golden-Hour Window
   const ghEl = document.getElementById('triage-golden-hour');
   if (ghEl) {
-    ghEl.textContent = `< ${data.goldenHourMinutes} Minutes`;
+    ghEl.textContent = 'Not estimated';
     ghEl.style.color = data.badgeColor;
   }
 
   // Update Urgency Description
   const urgEl = document.getElementById('triage-urgency-desc');
-  if (urgEl) urgEl.textContent = data.urgencyDescription;
+  if (urgEl) urgEl.textContent = 'Prototype assessment only. No responder has been contacted.';
 
   // Update Facility
   const facEl = document.getElementById('triage-facility-name');
@@ -185,12 +205,7 @@ function renderTriageUI(data) {
   // Render First Aid Steps
   const stepsContainer = document.getElementById('first-aid-steps-container');
   if (stepsContainer && data.firstAidSteps) {
-    stepsContainer.innerHTML = data.firstAidSteps.map(step => `
-      <div style="display:flex; align-items:flex-start; gap:8px; font-size:12.5px; color:var(--dark); line-height:1.5; background:rgba(248,250,252,0.8); padding:8px 12px; border-radius:10px; border-left:3px solid var(--primary);">
-        <i data-lucide="check" style="width:14px; height:14px; color:var(--primary); flex-shrink:0; margin-top:2px;"></i>
-        <span>${step}</span>
-      </div>
-    `).join('');
+    stepsContainer.textContent = 'Clinical instructions are withheld until qualified review. This prototype does not provide validated treatment advice.';
   }
 
   // Localized Summary Banner (Gemini or NLP)
@@ -212,77 +227,66 @@ function renderTriageUI(data) {
 // DISPATCH GPS SOS TO FIRESTORE & LOCAL EMERGENCY BROKER
 // -------------------------------------------------------------
 window.dispatchEmergencySOS = async () => {
+  if (submitting) return;
   const btn = document.getElementById('dispatch-sos-btn');
-  const confirmBox = document.getElementById('dispatch-confirm-box');
-  const detailsEl = document.getElementById('dispatch-details');
-
-  if (!currentTriageAssessment) {
-    window.onTriageInputChange();
-  }
-
+  const box = document.getElementById('dispatch-confirm-box');
+  const details = document.getElementById('dispatch-details');
+  const show = message => { if (box) box.style.display = 'flex'; if (details) details.textContent = message; };
+  if (!currentUser) { show('Sign in before recording a request. Nothing was sent.'); return; }
+  submitting = true;
   btn.disabled = true;
-  btn.innerHTML = `<i data-lucide="loader" class="animate-spin" style="width:18px; height:18px;"></i> Handshaking Satellites & Transmitting SOS...`;
-  lucide.createIcons();
-
-  const getCoordinates = () => new Promise((resolve) => {
-    if (!navigator.geolocation) {
-      resolve({ latitude: 25.4312, longitude: 81.8845, accuracy: 25, fallback: true });
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({
-        latitude: +pos.coords.latitude.toFixed(5),
-        longitude: +pos.coords.longitude.toFixed(5),
-        accuracy: Math.round(pos.coords.accuracy),
-        fallback: false
-      }),
-      () => resolve({ latitude: 24.8170, longitude: 93.9368, accuracy: 50, fallback: true }),
-      { enableHighAccuracy: true, timeout: 5000 }
-    );
-  });
-
-  const coords = await getCoordinates();
-
-  const emergencyPayload = {
-    triageId: currentTriageAssessment.triageId,
-    patientUid: currentUser?.uid || 'guest-emergency-user',
-    patientName: currentUser?.displayName || currentUser?.email || 'Emergency Pilgrim / Traveler',
-    priority: currentTriageAssessment.priority,
-    priorityLabel: currentTriageAssessment.priorityLabel,
-    conditionTitle: currentTriageAssessment.conditionTitle,
-    symptomsDescription: currentTriageAssessment.symptomsDescription,
-    clinicalReason: currentTriageAssessment.clinicalReason,
-    vitals: currentTriageAssessment.vitalsRecorded,
-    recommendedFacility: currentTriageAssessment.recommendedFacility,
-    coordinates: coords,
-    timestamp: new Date().toISOString(),
-    status: 'ACTIVE_DISPATCH_TO_FIELD_UNIT',
-    etaMinutes: currentTriageAssessment.priority === 'RED' ? 5 : 12
-  };
-
+  btn.textContent = 'Recording demo request…';
+  clearTimeout(debounceTimer);
   try {
-    await addDoc(collection(db, 'triages'), emergencyPayload);
-    await setDoc(doc(db, 'emergency_dispatches', emergencyPayload.triageId), emergencyPayload);
-  } catch (firestoreError) {
-    console.warn("Firestore offline or permission locked. Caching locally for offline delivery:", firestoreError);
+    if (!currentTriageAssessment) await window.onTriageInputChange();
+    const assessment = currentTriageAssessment;
+    if (!assessment) throw new Error('Complete the request form first.');
+    const uid = currentUser.uid;
+    const requestId = assessment.triageId;
+    const key = `exploreguard.pending.${uid}.${requestId}`;
+    const coordinates = await new Promise(resolve => {
+      if (!navigator.geolocation) { resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(pos => resolve({
+        latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy
+      }), () => resolve(null), {enableHighAccuracy: true, timeout: 5000});
+    });
+    if (currentUser?.uid !== uid) throw new Error('Account changed. Please retry after signing in.');
+    const payload = JSON.parse(JSON.stringify({
+      ...assessment, patientUid: uid, requestId, coordinates,
+      locationStatus: coordinates ? 'device_location' : 'unknown',
+      status: 'RECORDED_DEMO_REQUEST', responderAcknowledged: false,
+      etaMinutes: null, timestamp: new Date().toISOString()
+    }));
+    let savedLocally = false;
+    try { localStorage.setItem(key, JSON.stringify(payload)); savedLocally = true; } catch (_) {}
+    // Stable document IDs make retries idempotent; the two writes succeed atomically.
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'triages', requestId), payload);
+    batch.set(doc(db, 'emergency_dispatches', requestId), payload);
+    let timeout;
+    const acknowledgement = batch.commit().then(() => {
+      try { localStorage.removeItem(key); } catch (_) {}
+      return 'stored';
+    });
+    const result = await Promise.race([
+      acknowledgement,
+      new Promise(resolve => { timeout = setTimeout(() => resolve('pending'), 12000); })
+    ]).finally(() => clearTimeout(timeout));
+    if (result === 'stored') {
+      show(`Request ${requestId} stored in the demo database. ${coordinates ? 'Device location included.' : 'Location unavailable.'} No ambulance or PHC has been contacted. No ETA is available.`);
+      btn.textContent = 'Request recorded';
+    } else {
+      show(`Server confirmation pending. ${savedLocally ? 'A copy is saved on this device.' : 'Local saving is unavailable; keep this page open.'} No responder has been contacted. Retry uses the same request ID while this assessment remains open.`);
+      btn.textContent = 'Retry recording request';
+    }
+  } catch (error) {
+    console.warn('Request could not be confirmed:', error);
+    show('Request not confirmed by the server. Check your connection and account permissions, then retry. No responder has been contacted.');
+    btn.textContent = 'Retry recording request';
+  } finally {
+    submitting = false;
+    btn.disabled = false;
   }
-
-  localStorage.setItem('last_emergency_dispatch', JSON.stringify(emergencyPayload));
-
-  btn.disabled = false;
-  btn.innerHTML = `<i data-lucide="check-circle" style="width:18px; height:18px;"></i> SOS Dispatched to Emergency Unit!`;
-  btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-
-  if (confirmBox && detailsEl) {
-    confirmBox.style.display = 'flex';
-    detailsEl.innerHTML = `
-      <strong>Ticket:</strong> ${emergencyPayload.triageId} | 
-      <strong>Assigned Unit:</strong> ${emergencyPayload.recommendedFacility} | 
-      <strong>GPS:</strong> ${coords.latitude}, ${coords.longitude} (±${coords.accuracy}m) | 
-      <strong>ETA:</strong> ~${emergencyPayload.etaMinutes} mins. Ambulances notified.
-    `;
-  }
-  lucide.createIcons();
 };
 
 // Gemini Key Settings
@@ -370,3 +374,20 @@ window.loadContacts = () => {
 // Initial triggers
 loadContacts();
 window.onTriageInputChange();
+
+window.restorePendingRequest = () => {
+  if (!currentUser || submitting) return;
+  const prefix = `exploreguard.pending.${currentUser.uid}.`;
+  try {
+    const keys = Object.keys(localStorage).filter(key => key.startsWith(prefix));
+    const pending = keys.map(key => JSON.parse(localStorage.getItem(key)))
+      .filter(item => item.patientUid === currentUser.uid && item.triageId)
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+    if (!pending.length) { alert('No locally saved pending request for this account.'); return; }
+    ++assessmentRevision; clearTimeout(debounceTimer);
+    currentTriageAssessment = pending[0];
+    renderTriageUI(currentTriageAssessment);
+    document.getElementById('dispatch-details').textContent = 'Saved request restored. Review it, then use Record request to retry. No responder has been contacted.';
+    document.getElementById('dispatch-confirm-box').style.display = 'flex';
+  } catch (_) { alert('Saved requests could not be read on this device.'); }
+};

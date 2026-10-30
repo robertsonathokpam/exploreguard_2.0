@@ -38,6 +38,7 @@
   <link rel="stylesheet" href="css/safety.css">
 </head>
 <body>
+<div role="note" style="padding:12px 20px;background:#fff7ed;color:#7c2d12;font:14px/1.5 sans-serif;border-bottom:1px solid #fed7aa">Demonstration only: use fictional data. Language and clinical validation are pending. Requests are stored in a demo database; no ambulance or PHC is contacted.</div>
 <nav>
   <a class="nav-logo" href="index.html">
     <i data-lucide="map" style="stroke-width:2.5px;"></i> ExploreGuard
@@ -97,7 +98,7 @@
         <textarea id="triage-symptoms-text" placeholder="Describe symptoms (e.g. 'Severe chest pain after crush near bridge, unconscious with blue lips' or 'भगदड़ में सीने पर चोट, मरीज बेहोश है')..." class="textarea textarea-bordered w-full text-xs font-medium h-20 bg-white" oninput="window.debounceTriageInput()"></textarea>
       </div>
 
-      <!-- Quick Multilingual Demo Prompts -->
+      <p class="text-xs">Use fictional cases. Clinical validation and real responder integration are pending. No automatic cloud upload while typing.</p><button type="button" class="btn btn-xs" onclick="window.onTriageInputChange(true)">Analyse fictional text with Gemini (online)</button><!-- Quick Multilingual Demo Prompts -->
       <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
         <span class="text-slate-400 font-bold">Try Quick Demos:</span>
         <button type="button" class="btn btn-xs btn-outline" onclick="window.applySymptomDemo('en-crush')">🇬🇧 Stampede Crush (En)</button>
@@ -107,13 +108,14 @@
       </div>
     </div>
 
-    <!-- Quick Clinical Category Selector (Dropdown Fallback) -->
+    <button type="button" class="btn btn-xs" onclick="window.restorePendingRequest()">Restore latest locally saved request</button>
+<!-- Quick Clinical Category Selector (Dropdown Fallback) -->
     <div style="margin-bottom:1.5rem;">
       <label style="display:block; font-size:12.5px; font-weight:700; color:var(--dark); margin-bottom:6px;">
         <i data-lucide="stethoscope" style="width:14px; height:14px; display:inline; color:#ef4444;"></i> Or Select Standard Presentation:
       </label>
       <select id="triage-condition-select" onchange="window.onTriageInputChange()" style="width:100%; padding:11px 14px; border-radius:12px; border:1.5px solid rgba(15,23,42,0.12); font-family:var(--font); font-size:13.5px; font-weight:700; background:white; outline:none;">
-        <option value="stampede-trauma">Stampede Trauma / Crush Injury & Asphyxia (Kumbh Mela Chokepoint)</option>
+        <option value="auto" selected>Unknown / assess fictional text</option><option value="stampede-trauma">Stampede Trauma / Crush Injury & Asphyxia (Kumbh Mela Chokepoint)</option>
         <option value="heatstroke-dehydration">Severe Dehydration / Heatstroke & Hyperthermia (Midday Ghat Exposure)</option>
         <option value="landslide-injury">Landslide / Rockfall Trauma & Puncture Wounds (Manipur NH-37/NH-2)</option>
         <option value="cardiac-respiratory">Cardiac / Acute Respiratory Distress (Dyspnea & Chest Pain)</option>
@@ -126,7 +128,7 @@
       <div>
         <label style="display:block; font-size:12px; font-weight:700; color:var(--dark-muted); margin-bottom:4px;">Consciousness Level</label>
         <select id="triage-consciousness" onchange="window.onTriageInputChange()" style="width:100%; padding:9px 12px; border-radius:10px; border:1px solid rgba(15,23,42,0.15); font-family:var(--font); font-size:13px; font-weight:600; background:white;">
-          <option value="unconscious">Unconscious / Unresponsive (P1 Threat)</option>
+          <option value="unknown" selected>Unknown / not recorded</option><option value="unconscious">Unconscious / Unresponsive (P1 Threat)</option>
           <option value="altered">Altered / Disoriented / Delirious</option>
           <option value="conscious">Fully Alert & Conscious</option>
         </select>
@@ -138,7 +140,7 @@
           <span>Active Arterial Bleeding</span>
         </label>
         <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800">
-          <input type="checkbox" id="triage-breathing-diff" onchange="window.onTriageInputChange()" class="checkbox checkbox-warning checkbox-sm" checked />
+          <input type="checkbox" id="triage-breathing-diff" onchange="window.onTriageInputChange()" class="checkbox checkbox-warning checkbox-sm" />
           <span>Severe Breathing Difficulty / Cyanosis</span>
         </label>
       </div>
@@ -146,7 +148,7 @@
       <div>
         <label style="display:block; font-size:12px; font-weight:700; color:var(--dark-muted); margin-bottom:4px;">Pulse Rate (bpm)</label>
         <div class="flex items-center gap-2">
-          <input type="number" id="triage-pulse" value="125" min="30" max="220" onchange="window.onTriageInputChange()" style="width:100%; padding:9px 12px; border-radius:10px; border:1px solid rgba(15,23,42,0.15); font-family:var(--font); font-size:13px; font-weight:700; background:white;" />
+          <input type="number" id="triage-pulse" placeholder="Unknown" min="30" max="220" onchange="window.onTriageInputChange()" style="width:100%; padding:9px 12px; border-radius:10px; border:1px solid rgba(15,23,42,0.15); font-family:var(--font); font-size:13px; font-weight:700; background:white;" />
           <span class="text-xs text-slate-500 font-semibold">bpm</span>
         </div>
       </div>
@@ -192,15 +194,15 @@
     <!-- Dispatch GPS SOS Button -->
     <div style="display:flex; flex-direction:column; gap:10px;">
       <button type="button" id="dispatch-sos-btn" onclick="window.dispatchEmergencySOS()" style="width:100%; padding:16px 24px; background:linear-gradient(135deg, #e74c3c, #c0392b); color:white; border:none; border-radius:16px; font-size:16px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 8px 24px rgba(231,76,60,0.3); transition:all 0.2s;">
-        <i data-lucide="send" style="width:18px; height:18px;"></i> Dispatch GPS SOS to Nearest Health Camp / PHC
+        <i data-lucide="send" style="width:18px; height:18px;"></i> Record demo emergency request
       </button>
 
       <!-- Dynamic Dispatch Confirmation Box -->
       <div id="dispatch-confirm-box" style="display:none; animation:fadeInUp 0.4s ease;" class="alert-box alert-safe">
         <i data-lucide="check-circle" style="width:24px; height:24px; flex-shrink:0;"></i>
         <div style="display:flex; flex-direction:column; gap:3px;">
-          <span style="font-weight:800; font-size:14px;">EMERGENCY SOS LOGGED & DISPATCHED!</span>
-          <span id="dispatch-details" style="font-size:12.5px;">Dispatch Ticket: TRG-2027 · Ambulance team mobilized · ETA 5-7 mins.</span>
+          <span style="font-weight:800; font-size:14px;">DEMO REQUEST STATUS</span>
+          <span id="dispatch-details" style="font-size:12.5px;">No request recorded. No responder connected.</span>
         </div>
       </div>
     </div>
@@ -273,7 +275,7 @@
       </form>
     </div>
     <p class="text-xs text-slate-500 mt-3 leading-relaxed">
-      Configure your free Google Gemini API Key to enable generative multilingual medical triage. If omitted, ExploreGuard runs a 100% offline edge NLP classifier in English, Hindi, and Manipuri.
+      Configure your free Google Gemini API Key to enable generative multilingual medical triage. Without a key, limited local keyword rules run after the page has loaded. Offline app loading and clinical validation are not provided.
     </p>
     <div class="mt-4">
       <input type="password" id="gemini-triage-key-input" placeholder="AIzaSy..." class="input input-bordered w-full text-sm font-mono" />
@@ -286,6 +288,7 @@
 </dialog>
 
 <!-- External Modular JavaScript -->
+<script src="config.js"></script>
 <script type="module" src="js/safety.js"></script>
 </body>
 </html>

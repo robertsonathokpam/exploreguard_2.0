@@ -1,3 +1,4 @@
+import {hourlyRain, escapeHtml} from './data-utils.js';
 import { auth } from '../firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
@@ -177,15 +178,15 @@ window.queryUniversalLocation = async (cityNameOrCoords = null) => {
         elevations[2],
         elevations[3],
         elevations[4],
-        offset
+        offset, lat
       );
     } else {
       // Default elevation fallback based on typical montane average
-      currentDynamicElevation = { slopeAngleDeg: 28.5, slopeFactor: 0.63, avgElevationMeters: 850 };
+      throw new Error('Elevation service unavailable; no terrain score calculated');
     }
 
     // Query Overpass API for nearby hospitals / schools / shelters
-    let recommendedShelter = `${displayName} Municipal High Grounds`;
+    let recommendedShelter = null;
     try {
       const overpassRes = await fetch(`https://overpass-api.de/api/interpreter?data=[out:json];node(around:4000,${lat},${lon})["amenity"~"hospital|clinic|school|community_centre"];out 3;`, { signal: AbortSignal.timeout(3500) });
       if (overpassRes.ok) {
@@ -207,13 +208,13 @@ window.queryUniversalLocation = async (cityNameOrCoords = null) => {
       soilFragility: 0.75,
       historyWeight: 0.85,
       floodVulnerability: currentDynamicElevation.slopeAngleDeg < 12 ? 0.90 : 0.40,
-      safeShelters: [recommendedShelter, `${displayName} District Emergency Complex`],
+      safeShelters: recommendedShelter ? [recommendedShelter] : [],
       highRiskZones: [`${displayName} Drainage Chokepoints`, 'Steep Incline Cut-Banks']
     };
 
     // Update DEM Status Badge
     if (statusTag) {
-      statusTag.textContent = 'DEM Locked';
+      statusTag.textContent = 'Elevation retrieved — coarse terrain estimate';
       statusTag.className = 'badge badge-sm badge-success font-bold text-white';
     }
     const coordsEl = document.getElementById('dem-coords-text');
@@ -223,6 +224,9 @@ window.queryUniversalLocation = async (cityNameOrCoords = null) => {
     const slopeEl = document.getElementById('dem-slope-text');
     if (slopeEl) slopeEl.textContent = `${currentDynamicElevation.slopeAngleDeg}° (${Math.round(currentDynamicElevation.slopeFactor * 100)}% factor)`;
 
+    currentTelemetry.source = 'simulation';
+    const sourceTag = document.getElementById('active-scenario-tag');
+    if (sourceTag) sourceTag.textContent = 'Sample weather — not live at selected location';
     // Automatically fetch live weather for the new coordinates if OpenWeather key is present
     const key = getWeatherApiKey();
     if (key) {
@@ -230,10 +234,12 @@ window.queryUniversalLocation = async (cityNameOrCoords = null) => {
         const wRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${key}&units=metric`);
         if (wRes.ok) {
           const wData = await wRes.json();
-          currentTelemetry.rainfall = wData.rain ? (wData.rain['1h'] || wData.rain['3h'] || 0) : 0;
-          currentTelemetry.humidity = wData.main.humidity || 75;
-          currentTelemetry.windSpeed = Math.round((wData.wind?.speed || 5) * 3.6);
-          currentTelemetry.pressure = wData.main.pressure || 1012;
+          currentTelemetry.source = 'live';
+          if (sourceTag) sourceTag.textContent = 'Weather retrieved for selected coordinates';
+          currentTelemetry.rainfall = hourlyRain(wData);
+          currentTelemetry.humidity = wData.main.humidity ?? 75;
+          currentTelemetry.windSpeed = Math.round((wData.wind?.speed ?? 0) * 3.6);
+          currentTelemetry.pressure = wData.main.pressure ?? 1012;
         }
       } catch (err) {
         console.warn("Live weather fetch fallback:", err);
@@ -243,8 +249,9 @@ window.queryUniversalLocation = async (cityNameOrCoords = null) => {
     updateRiskEngineUI();
   } catch (err) {
     console.error("Universal geocoding error:", err);
+    clearHazardResult(err.message);
     if (statusTag) {
-      statusTag.textContent = 'Offline Fallback';
+      statusTag.textContent = 'Data unavailable — previous result cleared';
       statusTag.className = 'badge badge-sm badge-error font-bold text-white';
     }
   }
@@ -285,7 +292,9 @@ export function updateRiskEngineUI() {
   const corridorKey = document.getElementById('corridor-select')?.value || 'nh-37';
   const targetTerrain = (currentTerrainMode === 'universal' && customTerrainState) ? customTerrainState : corridorKey;
   
-  const riskResult = computeDisasterRisk(currentTelemetry, targetTerrain, currentDynamicElevation);
+  let riskResult;
+  try { riskResult = computeDisasterRisk(currentTelemetry, targetTerrain, currentDynamicElevation); }
+  catch (error) { clearHazardResult(error.message); return; }
 
   // Update Badge
   const badgeContainer = document.getElementById('overall-risk-badge-container');
@@ -382,7 +391,7 @@ export function updateRiskEngineUI() {
   // Update Shelters and High-Risk Sectors
   const safeShelter = document.getElementById('safe-shelter-name');
   if (safeShelter && riskResult.safeShelters) {
-    safeShelter.textContent = riskResult.safeShelters.join(' | ');
+    safeShelter.textContent = riskResult.safeShelters.length ? 'Unverified mapped/sample facilities: ' + riskResult.safeShelters.join(' | ') : 'No verified shelter information available';
   }
 
   const highRisk = document.getElementById('high-risk-sector-name');
@@ -399,6 +408,7 @@ window.recomputeRiskEngine = () => {
 };
 
 window.onRainfallSliderChange = (val) => {
+  currentTelemetry.source = 'simulation';
   currentTelemetry.rainfall = Number(val);
   const display = document.getElementById('rainfall-rate-display');
   if (display) display.textContent = `${val} mm/h`;
@@ -570,7 +580,7 @@ window.fetchWeather = async (city) => {
     const condition = data.weather[0].description;
     const visibility = data.visibility ? Math.round(data.visibility / 1000) : 'N/A';
     const pressure = data.main.pressure || 1013;
-    const rainMm = data.rain ? (data.rain['1h'] || data.rain['3h'] || 0) : 0;
+    const rainMm = hourlyRain(data);
 
     if (currentTelemetry.source === 'live') {
       currentTelemetry.rainfall = rainMm;
@@ -670,3 +680,16 @@ window.fetchWeather = async (city) => {
 // Initial load
 fetchWeather('Imphal');
 updateRiskEngineUI();
+
+function clearHazardResult(reason) {
+  window.lastRiskAssessment = null;
+  for (const id of ['landslide-prob-val', 'flood-prob-val', 'composite-score-val', 'slope-factor-val', 'slope-angle-val', 'floodplain-index-val', 'baro-pressure-val', 'wind-speed-val', 'safe-shelter-name', 'high-risk-sector-name']) {
+    const el = document.getElementById(id); if (el) el.textContent = 'Unavailable';
+  }
+  for (const id of ['landslide-progress', 'flood-progress', 'composite-progress']) {
+    const el = document.getElementById(id); if (el) el.value = 0;
+  }
+  for (const id of ['risk-tier-badge', 'evac-action-text']) {
+    const el = document.getElementById(id); if (el) el.textContent = `Data unavailable: ${reason}`;
+  }
+}
