@@ -338,3 +338,23 @@ h2 {
     padding: 1.75rem 1.25rem;
   }
 }
+
+/* Explicit colours prevent OS/DaisyUI dark defaults from obscuring controls. */
+html { color-scheme: light; }
+#triage-widget input, #triage-widget textarea, #triage-widget select,
+#gemini-triage-modal input { background:#fff!important; color:#172b3a!important; border:1px solid #94a3b8!important; border-radius:10px; padding:12px; min-width:0; }
+#gemini-triage-modal input { display:block; width:100%; margin:8px 0 16px; }
+input::placeholder, textarea::placeholder { color:#64748b!important; opacity:1; }
+#triage-widget .btn, #gemini-triage-modal .btn { background:#e8f4ef; color:#145941; border:1px solid #9ac7b5; border-radius:10px; padding:10px 14px; height:auto; min-height:42px; white-space:normal; }
+#triage-widget .btn:hover, #gemini-triage-modal .btn:hover { background:#d4eade; }
+#gemini-triage-modal .btn-error { background:#147d60; color:#fff; }
+#triage-widget .badge { background:#edf2f7; color:#334155; height:auto; white-space:normal; line-height:1.6; padding:8px 12px; border-radius:8px; }
+#triage-ai-model-tag { display:block; margin:10px 0; }
+#gemini-triage-modal .modal-box { background:#fff; color:#172b3a; width:min(540px,calc(100vw - 24px)); padding:24px; max-height:90vh; overflow:auto; }
+#gemini-triage-modal label { font-weight:700; font-size:14px; }
+#gemini-settings-status { background:#eef6f2; color:#214c3e; padding:12px; border-radius:8px; font-size:14px; line-height:1.6; overflow-wrap:anywhere; }
+.settings-help { font-size:13px; color:#475569; line-height:1.6; margin-bottom:12px; }
+#gemini-triage-modal .modal-action { flex-wrap:wrap; gap:8px; }
+.observation-field { display:flex; flex-direction:column-reverse; gap:6px; font-size:13px; font-weight:600; color:#334155; }
+#triage-widget select { font-size:13px; }
+#triage-widget input:focus-visible, #triage-widget textarea:focus-visible, #gemini-triage-modal input:focus-visible, button:focus-visible { outline:3px solid #70bca4; outline-offset:2px; }

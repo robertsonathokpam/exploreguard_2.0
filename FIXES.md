@@ -39,3 +39,15 @@ Headless Chromium successfully loaded the actual RT-DETR quantized weights and p
 - NASA LHASA is presented as an external model/map, not falsely described as running in this site.
 - Added five tests for forecast validation, missing vs zero flow, stale requests, ambiguous place names and provider failure. All 28 regression/controller tests and 56 legacy simulation assertions pass.
 - Actual browser check: selected Shillong from two search matches and loaded seven river forecast rows. Desktop and 390px screenshots reviewed; no horizontal overflow. Auth was mocked and provider requests passed through the runner's network proxy, as in the previous browser check. No production Firebase writes or deployment changes.
+
+## Gemini diagnostics and readable incident form
+
+Saving a key previously only stored it, while all generation failures displayed one generic message. Settings now offer a small generation connection test (no incident text), editable model ID, inline storage status and specific key/access/quota/model/network/timeout errors. Raw provider errors and keys are not displayed or logged. The generation timeout is 30 seconds. A saved key or a successful test is not a clinical assessment. User-specific Google credentials/account access cannot be verified without the user's local test.
+
+The medical page explicitly uses a light theme, white input backgrounds, contrasting buttons/status badges, stacked observation labels and a shorter consciousness option without a P1 priority claim. Hospital integration is deferred; request recording still never contacts a responder.
+
+Suggested presentation wording: “Current prototype: incident recording and optional AI draft summaries. Future scope: verified hospital partnerships, authenticated responder dashboard, acknowledgement and two-way status updates. No hospital or ambulance dispatch is connected today.”
+
+Future reply flow: user submits a request; an authorized partner reviews it; that partner explicitly acknowledges or replies; the backend stores the reply under the same request ID; the user's request-status screen displays it. Notifications and real dispatch require separate implementation and partner agreement. No acknowledgement or ETA should be simulated as real.
+
+Validation for this revision: 56 legacy assertions and 32 regression/controller tests pass. Headless Chromium verified the settings dialog at desktop and 390px, white input background/dark text, and an intercepted HTTP 429 displayed the correct actionable message. Firebase and Gemini responses were mocked in this UI test; no real key, patient data or hospital contact was used.

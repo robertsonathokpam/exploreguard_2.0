@@ -210,3 +210,46 @@ test('Failed river provider request leaves no forecast or safe classification', 
   assert.match(h.document.getElementById('river-status').textContent,/unavailable/);
   assert.equal(h.document.getElementById('load-river-button').disabled,false);
 });
+
+test('Gemini errors distinguish rejected keys, restrictions, quota, missing models and outages without exposing raw text', async () => {
+  for (const [status,message,expected] of [[400,'API key not valid. secret-value',/rejected the API key/],[403,'secret-value',/denied access/],[429,'secret-value',/quota or rate limit/],[404,'secret-value',/Model unavailable/],[503,'secret-value',/service error/]]) {
+    const h=harness('safety.js',{fetch:async()=>({ok:false,status,json:async()=>({error:{message}})})});
+    h.storage.setItem('gemini_api_key','secret-value');
+    h.document.getElementById('triage-symptoms-text').value='Fictional report';
+    await h.context.onTriageInputChange(true);
+    const text=h.document.getElementById('triage-ai-model-tag').textContent;
+    assert.match(text,expected); assert.doesNotMatch(text,/secret-value/);
+    assert.equal(h.run('currentTriageAssessment.priority'),'UNKNOWN');
+  }
+});
+test('Connection test uses entered credentials/model and a test prompt, never the incident or database',async()=>{
+  let request;
+  const h=harness('safety.js',{fetch:async(url,options)=>{request={url,options};return {ok:true,json:async()=>({candidates:[{content:{parts:[{text:'OK'}]}}]})};}});
+  h.document.getElementById('gemini-triage-key-input').value='test-only-key';
+  h.document.getElementById('gemini-model-input').value='gemini-test-model';
+  h.document.getElementById('triage-symptoms-text').value='Private incident must not be sent';
+  await h.context.testGeminiConnection();
+  assert.match(request.url,/gemini-test-model:generateContent$/);
+  assert.equal(request.options.headers['x-goog-api-key'],'test-only-key');
+  assert.doesNotMatch(request.options.body,/Private incident/);
+  assert.equal(h.commits(),0);assert.equal(h.storage.getItem('gemini_api_key'),null);
+  assert.match(h.document.getElementById('gemini-settings-status').textContent,/test passed/);
+});
+test('Saving settings does not claim verification or send a request',()=>{
+  const h=harness('safety.js',{fetch:()=>{throw Error('Unexpected request')}});
+  h.document.getElementById('gemini-triage-key-input').value='test-key';
+  h.document.getElementById('gemini-model-input').value='gemini-test-model';
+  h.context.saveGeminiKey();
+  assert.equal(h.storage.getItem('gemini_model'),'gemini-test-model');
+  assert.match(h.document.getElementById('gemini-settings-status').textContent,/not verified/);
+});
+test('Connection timeout and blocked response show useful errors, and re-enable test button',async()=>{
+  for(const failure of ['timeout','blocked']) {
+    const h=harness('safety.js',{fetch:async()=>{if(failure==='timeout'){const e=new Error();e.name='TimeoutError';throw e;}return {ok:true,json:async()=>({promptFeedback:{blockReason:'SAFETY'}})}}});
+    h.document.getElementById('gemini-triage-key-input').value='test-key';
+    h.document.getElementById('gemini-model-input').value='gemini-test-model';
+    await h.context.testGeminiConnection();
+    assert.match(h.document.getElementById('gemini-settings-status').textContent,failure==='timeout'?/30 seconds/:/blocked/);
+    assert.equal(h.document.getElementById('gemini-test-btn').disabled,false);
+  }
+});

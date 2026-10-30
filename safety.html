@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -114,20 +114,20 @@
       <div>
         <label style="display:block; font-size:12px; font-weight:700; color:var(--dark-muted); margin-bottom:4px;">Consciousness Level</label>
         <select id="triage-consciousness" onchange="window.onTriageInputChange()" style="width:100%; padding:9px 12px; border-radius:10px; border:1px solid rgba(15,23,42,0.15); font-family:var(--font); font-size:13px; font-weight:600; background:white;">
-          <option value="unknown" selected>Unknown / not recorded</option><option value="unconscious">Unconscious / Unresponsive (P1 Threat)</option>
-          <option value="altered">Altered / Disoriented / Delirious</option>
+          <option value="unknown" selected>Unknown / not recorded</option><option value="unconscious">Unconscious / unresponsive</option>
+          <option value="altered">Confused / disoriented</option>
           <option value="conscious">Fully Alert & Conscious</option>
         </select>
       </div>
 
       <div style="display:flex; flex-direction:column; justify-content:center; gap:8px;">
-        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800">
+        <label class="observation-field">
           <select id="triage-severe-bleeding" onchange="window.onTriageInputChange()" style="background:white;color:#0f172a;padding:8px"><option value="unknown">Unknown</option><option value="yes">Reported</option><option value="no">Reported absent</option></select>
-          <span>Reported severe bleeding</span>
+          <span>Severe bleeding</span>
         </label>
-        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800">
+        <label class="observation-field">
           <select id="triage-breathing-diff" onchange="window.onTriageInputChange()" style="background:white;color:#0f172a;padding:8px"><option value="unknown">Unknown</option><option value="yes">Reported</option><option value="no">Reported absent</option></select>
-          <span>Reported breathing difficulty</span>
+          <span>Breathing difficulty</span>
         </label>
       </div>
 
@@ -234,7 +234,7 @@
   <div class="modal-box max-w-md bg-white p-6 rounded-2xl shadow-2xl">
     <div class="flex justify-between items-center pb-3 border-b border-slate-200">
       <h3 class="font-extrabold text-lg text-slate-800 flex items-center gap-2">
-        <i data-lucide="sparkles" style="width:18px; height:18px; color:#ef4444;"></i> Gemini 2.5 Flash Settings
+        <i data-lucide="sparkles" style="width:18px; height:18px; color:#ef4444;"></i> Gemini summary settings
       </h3>
       <form method="dialog">
         <button class="btn btn-sm btn-circle btn-ghost">✕</button>
@@ -244,9 +244,15 @@
       Configure your own Google Gemini API key for optional draft summaries. Provider quotas and charges depend on your account. The key is stored in browser local storage, accessible to scripts on this site. Do not enter real patient information. There is no local diagnosis fallback.
     </p>
     <div class="mt-4">
-      <input type="password" id="gemini-triage-key-input" placeholder="AIzaSy..." class="input input-bordered w-full text-sm font-mono" />
+      <label for="gemini-triage-key-input">Gemini API key</label>
+      <input autocomplete="off" type="password" id="gemini-triage-key-input" placeholder="AIzaSy..." class="input input-bordered w-full text-sm font-mono" />
     </div>
+    <label for="gemini-model-input">Model ID</label>
+    <input id="gemini-model-input" value="gemini-2.5-flash" spellcheck="false" autocomplete="off" />
+    <p class="settings-help">Use a model available to your Google AI Studio project. Test connection sends only a short test prompt, not your report; provider usage limits apply.</p>
+    <p id="gemini-settings-status" role="status" aria-live="polite"></p>
     <div class="modal-action mt-4 flex justify-between">
+      <button type="button" id="gemini-test-btn" class="btn" onclick="window.testGeminiConnection()">Test connection</button>
       <button type="button" class="btn btn-sm btn-ghost text-xs text-red-500" onclick="window.clearGeminiKey()">Clear Key</button>
       <button type="button" class="btn btn-sm btn-error text-xs font-bold text-white" onclick="window.saveGeminiKey()">Save Key</button>
     </div>
