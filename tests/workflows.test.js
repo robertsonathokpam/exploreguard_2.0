@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import * as engine from '../js/risk-engine.js';
+import {createPersonDetector} from '../js/vision-model.js';
+import {validateCoordinates, parseWeather, parseElevation} from '../js/environment-data.js';
 
 // Runs the real page controller with isolated DOM, model and database adapters.
 // It does not contact production Firebase or claim model-accuracy validation.
@@ -18,13 +20,14 @@ function harness(file, overrides = {}, lineEnding = null) {
     createElement:element,querySelector(){return element();},querySelectorAll(){return []}};
   const storage={getItem(k){return this[k]??null},setItem(k,v){this[k]=v},removeItem(k){delete this[k]}};
   let commits=0; const writes=[];
-  const context={...engine,document,console:{log(){},warn(){}},performance,crypto,
+  const context={...engine,validateCoordinates,parseWeather,parseElevation,AbortController,document,console:{log(){},warn(){}},performance,crypto,
     localStorage:storage,navigator:{},location:{origin:'http://localhost'},lucide:{createIcons(){}},
     auth:{},db:{},onAuthStateChanged(a,fn){fn({uid:'test-user',email:'test@example.invalid'});},
     doc(db,collection,id){return collection+'/'+id},
     writeBatch(){return {set(path,payload){writes.push({path,payload})},commit(){commits++;return Promise.resolve();}}},
     setDoc(){return Promise.resolve()},deleteDoc(){return Promise.resolve()},
     alert(){},setTimeout,clearTimeout,AbortSignal,URL, ...overrides};
+  context.createPersonDetector = choice => createPersonDetector(choice, {cocoSsd: overrides.cocoSsd});
   context.window=context;
   vm.createContext(context);
   let source=fs.readFileSync(new URL('../js/'+file,import.meta.url),'utf8');
@@ -50,7 +53,7 @@ test('Zero vision detections stay zero; repeated scans use clean pixels and expl
   await h.context.runVisionDetection();await h.context.runVisionDetection();
   assert.deepEqual(seen,[[0,200,.35],[0,200,.35],[0,200,.35]]);
   assert.equal(h.document.getElementById('vision-detected-count').textContent,'1 detected');
-  assert.equal(h.run('activeCustomHeadcount'),null);
+  assert.match(h.document.getElementById('vision-density').textContent, /unavailable/);
 });
 test('Model failures produce unavailable status instead of artificial people',async()=>{
   const h=harness('tracker.js',{cocoSsd:{load:async()=>{throw Error('offline')}}});
@@ -104,3 +107,68 @@ for (const lineEnding of ['\n', '\r\n']) {
     }
   });
 }
+
+test('Medical report does not assign priority or a facility from keywords or invented vitals', async () => {
+  const h = harness('safety.js');
+  h.document.getElementById('triage-symptoms-text').value = 'core temperature 40.5C, delirious';
+  await h.context.onTriageInputChange();
+  assert.equal(h.run('currentTriageAssessment.priority'), 'UNKNOWN');
+  assert.equal(h.run('currentTriageAssessment.recommendedFacility'), null);
+  assert.equal(h.run('currentTriageAssessment.vitalsRecorded.pulseRate'), null);
+  assert.equal(h.run('currentTriageAssessment.vitalsRecorded.severeBleeding'), 'unknown');
+  assert.match(h.document.getElementById('triage-distance-text').textContent, /unavailable/);
+});
+test('Missing Gemini key and provider failure leave the report unassessed', async () => {
+  const h = harness('safety.js', {fetch: async () => ({ok:false, status:429})});
+  h.document.getElementById('triage-symptoms-text').value = 'fictional report';
+  await h.context.onTriageInputChange(true);
+  assert.match(h.document.getElementById('triage-ai-model-tag').textContent, /configure a Gemini key/);
+  h.storage.setItem('gemini_api_key', 'test-key');
+  await h.context.onTriageInputChange(true);
+  assert.equal(h.run('currentTriageAssessment.priority'), 'UNKNOWN');
+  assert.match(h.document.getElementById('triage-ai-model-tag').textContent, /unavailable/);
+});
+test('Gemini summary includes entered observations and stale responses cannot overwrite edits', async () => {
+  let release, sent;
+  const h = harness('safety.js', {fetch: async (url, options) => {
+    sent = JSON.parse(options.body);
+    return new Promise(resolve => {release = resolve;});
+  }});
+  h.storage.setItem('gemini_api_key','test-key');
+  h.document.getElementById('triage-symptoms-text').value = 'fictional first report';
+  h.document.getElementById('triage-pulse').value = '83';
+  const pending = h.context.onTriageInputChange(true);
+  assert.match(sent.contents[0].parts[0].text, /"pulseRate":83/);
+  h.document.getElementById('triage-symptoms-text').value = 'edited report';
+  await h.context.onTriageInputChange();
+  release({ok:true,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify({summary:'old summary'})}]}}]})});
+  await pending;
+  assert.equal(h.run('currentTriageAssessment.localizedSummary'),null);
+  assert.equal(h.run('currentTriageAssessment.symptomsDescription'),'edited report');
+});
+test('Weather and elevation failures never substitute preset readings or probabilities', async () => {
+  const h = harness('alerts.js', {fetch:async()=>({ok:false,status:503})});
+  await h.context.loadEnvironment({lat:0,lon:0,name:'Equator'});
+  assert.equal(h.document.getElementById('weather-temperature').textContent,'Unavailable');
+  assert.equal(h.document.getElementById('terrain-slope').textContent,'Unavailable');
+  assert.match(h.document.getElementById('weather-source').textContent,/No substitute/);
+});
+test('Provider readings preserve precipitation interval and partial terrain failures', async () => {
+  const h = harness('alerts.js', {fetch:async url => url.includes('/elevation')
+    ? {ok:false,status:503}
+    : {ok:true,json:async()=>({current:{time:'2026-10-30T12:00',temperature_2m:20,relative_humidity_2m:70,wind_speed_10m:12,surface_pressure:990,precipitation:0,interval:900}})}
+  });
+  await h.context.loadEnvironment({lat:24,lon:94,name:'Test location'});
+  assert.equal(h.document.getElementById('weather-rain').textContent,'0.0 mm / 15 min');
+  assert.equal(h.document.getElementById('terrain-slope').textContent,'Unavailable');
+  assert.match(h.document.getElementById('weather-source').textContent,/2026-10-30T12:00 UTC/);
+});
+test('A valid AI summary never changes clinical priority or assigns a responder', async () => {
+  const h = harness('safety.js', {fetch:async()=>({ok:true,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify({summary:'Fictional report supplied by the user.'})}]}}]})})});
+  h.storage.setItem('gemini_api_key','test-key');
+  h.document.getElementById('triage-symptoms-text').value = 'Fictional report';
+  await h.context.onTriageInputChange(true);
+  assert.equal(h.run('currentTriageAssessment.localizedSummary'),'Fictional report supplied by the user.');
+  assert.equal(h.run('currentTriageAssessment.priority'),'UNKNOWN');
+  assert.equal(h.run('currentTriageAssessment.recommendedFacility'),null);
+});

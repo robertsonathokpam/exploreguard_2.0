@@ -32,7 +32,7 @@ function assert(condition, testDescription) {
 }
 
 console.log('====================================================================');
-console.log('🧪 Starting ExploreGuard AI Engine 2.0 Validation Suite (VBYLD 2027)');
+console.log('🧪 Legacy simulation calculations (disconnected from live pages; not model validation)');
 console.log('====================================================================\n');
 
 // 1. Verify Sample Data Integrity

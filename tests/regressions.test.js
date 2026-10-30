@@ -34,3 +34,34 @@ test('Rainfall uses one-hour values including zero, or the three-hour hourly ave
 test('Stored user values are escaped before insertion as HTML', () => {
   assert.equal(escapeHtml('<img src=x onerror="boom()">'), '&lt;img src=x onerror=&quot;boom()&quot;&gt;');
 });
+
+// New provider/model contracts, independent of legacy simulation calculations.
+import {parseWeather, parseElevation, validateCoordinates} from '../js/environment-data.js';
+import {createPersonDetector} from '../js/vision-model.js';
+test('Missing weather is unknown while an explicit provider zero remains zero', () => {
+  const data = parseWeather({current:{time:'2026-10-30T12:00',temperature_2m:null,precipitation:0,interval:900}});
+  assert.equal(data.temperature,null); assert.equal(data.precipitation,0); assert.equal(data.interval,900);
+  assert.equal(data.humidity,null);
+  assert.throws(()=>parseWeather({}));
+  assert.throws(()=>parseElevation({elevation:[1,2,null,4,5]},24,94));
+  assert.doesNotThrow(()=>validateCoordinates(0,0));
+  assert.throws(()=>validateCoordinates(91,0));
+});
+test('RT-DETR adapter uses model output pixel boxes and never fabricates people', async () => {
+  let returned = []; let settings, options;
+  const model = await createPersonDetector('rtdetr', {loadTransformers:async()=>({
+    env:{backends:{onnx:{wasm:{}}}}, RawImage:class {constructor(data,width,height,channels){this.width=width;}},
+    pipeline:async(task,id,config)=>{settings={task,id,config};return async(image,opts)=>{options=opts;return returned;};}
+  })});
+  const canvas={width:640,height:480,getContext:()=>({getImageData:()=>({data:new Uint8ClampedArray(4)})})};
+  assert.deepEqual(await model.detect(canvas,200,.35),[]);
+  returned=[{label:'person',score:.8,box:{xmin:10,ymin:20,xmax:40,ymax:80}},{label:'car',score:.9,box:{}}];
+  assert.deepEqual(await model.detect(canvas,200,.35),[{class:'person',score:.8,bbox:[10,20,30,60]}]);
+  assert.equal(settings.id,'onnx-community/rtdetr_r18vd'); assert.equal(settings.config.dtype,'q8');
+  assert.equal(options.percentage,false);
+});
+test('Lighter detector explicitly loads full MobileNet V2 rather than Lite', async () => {
+  let config; const detector={detect(){}};
+  assert.equal(await createPersonDetector('mobilenet',{cocoSsd:{load:async c=>{config=c;return detector;}}}),detector);
+  assert.equal(config.base,'mobilenet_v2');
+});

@@ -1,51 +1,33 @@
-# Prototype correctness fixes — 30 October 2026
+# Prototype corrections
 
-Base: b104460097e04d4dd5e23f1eac4eec65d04578ad
-Branch: fix/honest-prototype-results
+## Current revision: remove unsupported outputs
 
-## Implemented
+The user reported severe undercounting on an illustrated crowd, a broken image layout, unsupported hazard probabilities at zero rain, and a medical page showing an invented facility and distance. This revision changes the behaviour, rather than adding fixed answers:
 
-- Vision: remove random detection fallback; preserve zero detections; separate immutable source image from annotated display; preserve aspect ratio; explicitly request up to 200 detections at threshold 0.35; report model failures; discard stale results when an image changes; release camera tracks; optional visible-area density; disable unsupported sector synchronization and remove the 1,250 multiplier. Increasing the detection limit does not prove improved model accuracy.
-- Emergency requests: unknown GPS remains unknown; remove invented ETA and ambulance confirmation; atomic Firestore writes using stable document IDs; protect against double submission; show server-confirmation pending on timeout; save a local pending copy when storage permits; explicit restore/retry for the latest saved request under the signed-in account. No background delivery guarantee or complete offline queue is claimed.
-- Text analysis: cloud requests require explicit action, have a timeout and basic schema validation, and discard stale responses. Local matching does not invent pulse measurements. Unknown or negated text returns an unclassified result requiring human review. This conservative handling can also classify serious descriptions containing negation as unknown: it does not implement multilingual clinical language understanding.
-- Clinical display: remove speculative response time and withhold treatment instructions pending qualified review. Experimental categorization remains available for fictional demo cases. Backend data and historical category constants are not clinically validated.
-- Hazards: reject invalid numerical inputs, adjust east-west slope calculation for latitude, convert three-hour rainfall totals to an hourly average, remove fabricated dynamic elevation/shelter fallbacks, distinguish sample weather and mapped unverified facilities. Dashboard uses an explicitly labelled sample scenario instead of combining Imphal weather with arbitrary GPS coordinates.
-- Rendering: escape stored booking values before HTML insertion and remove dynamic inline booking-ID handlers. Clinical model output is no longer rendered as first-aid HTML.
-- Presentation: visible prototype limitations on affected pages; corrected stale test summary.
+- Photo viewport text is outside the canvas container; images retain their aspect ratio and metrics wrap on small screens.
+- RT-DETR R18 (quantized ONNX, browser WASM) is selectable alongside full MobileNet V2. RT-DETR is an experimental candidate, not an asserted accuracy improvement on this project's images. The first model download requires internet. Model failures remain unavailable without switching models silently or generating detections.
+- Removed illustrated presets, sector count/flow/route samples from the active tracker and removed the automatic detections/area density calculation. A single image is not a calibrated venue sensor.
+- Replaced arbitrary sigmoid percentages and hardcoded terrain/soil inputs with actual Open-Meteo provider data. Weather and elevation fail independently, absent values stay unknown, and source/time/units are displayed. No disaster probability is output. Removed dashboard sample percentages too.
+- Removed the medical keyword classifier from the active report flow. A fictional report remains unassessed. Optional Gemini calls summarize supplied observations without requesting treatment, diagnoses, facilities or priority labels. Missing keys, failed calls and invalid replies do not trigger a fabricated local result. Clinical review is still required; model summaries can be wrong.
+- Removed invented medical facility, 420 m distance, offline-first-aid claims and unverified static district directory. Unknown observations are explicit, including bleeding and breathing. The national dial link remains separate from demo recording.
+- Preserved atomic/idempotent Firestore demo writes, local pending-copy restoration and explicit unconfirmed/pending states from the previous revision. No responder is connected.
 
-## Run locally
+## Automated verification
 
-Use Node.js 20 or newer (Node 24 was used for this review).
+`npm test` includes 56 **legacy simulation assertions** and 23 regression/controller tests. Legacy assertions exercise old formulas, which the active pages no longer import. They are not a forecast, language or clinical validation report.
 
-```sh
-npm test
-python -m http.server 8000
-```
+New tests cover real controller behaviour with isolated DOM/Firebase/model adapters: empty detections, inference failures, stale images, clean rescans, database rejection/timeouts, Windows CRLF loading, provider missing values vs explicit zeros, model adapter coordinates, unsupported medical assignment removal, Gemini failure/stale results and weather/elevation failure states. Adapter tests do not run neural-network weights or prove model accuracy. No tests send production Firebase writes.
 
-On Windows, use `py -m http.server 8000` if `python` is unavailable. Open http://localhost:8000.
+## Remaining work
 
-Use fictional records and a separate Firebase test project. Configure your own Firebase Auth and Firestore settings and authorized domains. Copy `config.example.js` to `config.js` if you need local API configuration. Never commit private credentials. The supplied Firebase web configuration already existed in the repository and is not a security-rules audit.
+- Real model benchmark on independent labelled photos; purpose-built dense-crowd model evaluation if general object detectors remain insufficient.
+- Trained and independently evaluated regional hazard model using appropriate event labels and environmental covariates. Weather observations cannot substitute for that model.
+- Qualified clinical/language review and approved protocols before clinical triage is added.
+- Production Firebase rules/auth testing, GPS-write controls, expiring sharing links, retention policies and security review.
+- Fully durable offline app loading and background delivery. Current local restoration is limited manual recovery.
 
-## Validation completed
+Run with `npm test` and `py -m http.server 8000` on Windows. Use fictional inputs and a separate Firebase test project. Browser/model smoke-test findings are recorded in the pull request; they do not validate accuracy or deployed integrations.
 
-`npm test` passes:
-- 56 calculation assertions, with revised expectations for ambiguous text and the non-official briefing label.
-- 12 regression/workflow tests covering invalid input, negation, rainfall, slope latitude, escaping, zero detections, model failure, clean repeated scans, stale image results, denied GPS, database rejection and delayed acknowledgment.
+## Browser smoke test for this revision
 
-Workflow tests execute the actual JavaScript controllers in isolated Node VM contexts with mocked DOM/model/database adapters. No live Firebase writes occurred. These tests do not prove actual model precision/recall, clinical correctness, browser layout or production integration.
-
-Full browser verification could not run: the Chromium download failed in this environment. Before merging, test file upload, camera permission, repeated scans, real model loading, sign-in and Firestore rules in your own browser/test project. Model weights still require a first online download. External CDN availability and API keys remain deployment dependencies.
-
-## Still required
-
-- Evaluate person detection on manually annotated real photographs. Dense crowds may need a different validated counting model; benchmark before choosing one.
-- Measured camera-area calibration, real flow tracking and reviewed routing data. The sector dashboard remains a scenario simulator.
-- A service worker and full durable offline queue with retry lifecycle, deletion/retention controls and account isolation tests. The current local-copy restoration is a limited manual recovery mechanism.
-- Qualified clinical review, complete language testing, reviewed first-aid translations and voice support.
-- Real responder/PHC integration and acknowledgment, verified shelters and field studies.
-- Production security-rule tests, expiring location-sharing links, GPS-write throttling and a complete security/privacy review. Do not interpret these fixes as a production security certification.
-- Review existing static public-site marketing copy and historical documentation before public deployment.
-
-## Deployment
-
-Review these changes on their branch before merging into `main`. Keep your existing private `config.js` out of version control. Run the checks above, then merge through GitHub and verify the Render service's configured deployment branch. No Render settings or deployed Firebase rules were changed by this patch.
+Headless Chromium successfully loaded the actual RT-DETR quantized weights and performed inference through the photo-upload UI on the supplied illustrated screenshot. This was a loading/output smoke test, not an accuracy benchmark (the screenshot already contains old annotations). The weather page retrieved actual Open-Meteo weather/elevation data for Imphal. The medical page retained unknown priority and unavailable distance for the supplied fictional heatstroke-like narrative. Authentication and Firestore were mocked to avoid production data access; Gemini with a real key, actual webcam capture, and deployment remain unverified. Browser network requests were proxied through the test runner because direct browser egress was unavailable in the editing environment.

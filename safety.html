@@ -36,6 +36,15 @@
   <!-- Linked Modular Stylesheets -->
   <link rel="stylesheet" href="css/global.css">
   <link rel="stylesheet" href="css/safety.css">
+<style>
+@media(max-width:600px){
+  nav{flex-wrap:wrap;gap:12px} nav>div{flex-wrap:wrap}
+  #triage-widget{padding:20px!important}
+  #triage-widget>div[style*="display:grid"]{grid-template-columns:minmax(0,1fr)!important}
+  #triage-widget select{max-width:100%}
+  #triage-widget .badge{white-space:normal;height:auto}
+}
+</style>
 </head>
 <body>
 <div role="note" style="padding:12px 20px;background:#fff7ed;color:#7c2d12;font:14px/1.5 sans-serif;border-bottom:1px solid #fed7aa">Demonstration only: use fictional data. Language and clinical validation are pending. Requests are stored in a demo database; no ambulance or PHC is contacted.</div>
@@ -53,13 +62,13 @@
 
 <div class="container" style="max-width: 980px;">
   <div class="header-section">
-    <h2>Emergency Services & AI Medical Triage</h2>
-    <p class="subtitle">Multilingual Gemini 2.5 Flash clinical triage, Golden-Hour response & localized district SOS</p>
+    <h2>Emergency contacts & incident reporting</h2>
+    <p class="subtitle">Record a fictional incident and optionally generate an AI draft summary for human review.</p>
   </div>
 
   <div class="sos-card">
     <h3><i data-lucide="alert-triangle"></i> EMERGENCY SOS</h3>
-    <p>In immediate risk, severe climate traps, or personal danger, trigger the national security helpline network instantly.</p>
+    <p>For an emergency in India, use the dial link to call 112. Recording a demo request below does not place a call.</p>
     <a class="sos-btn" href="tel:112"><i data-lucide="phone-call" style="z-index:2;"></i> Dial 112 — National Emergency</a>
   </div>
 
@@ -71,13 +80,13 @@
           <i data-lucide="heart-pulse" style="width:22px; height:22px;"></i>
         </div>
         <div>
-          <h3 style="font-size:20px; font-weight:800; color:var(--dark); margin:0;">AI Golden-Hour Medical Triage & Dispatch 2.0</h3>
-          <p style="font-size:13px; color:var(--dark-muted); margin:0;">Multilingual Natural Language Clinical NLP + Google Gemini 2.5 Flash</p>
+          <h3 style="font-size:20px; font-weight:800; color:var(--dark); margin:0;">Incident report & optional AI summary</h3>
+          <p style="font-size:13px; color:var(--dark-muted); margin:0;">No automated diagnosis, clinical priority, facility assignment or dispatch.</p>
         </div>
       </div>
       <div>
-        <span class="badge badge-error text-white font-black text-sm p-3 flex items-center gap-1.5 shadow-sm" id="triage-priority-badge">
-          <i data-lucide="alert-octagon" style="width:14px; height:14px;"></i> RED — IMMEDIATE (P1)
+        <span class="badge badge-ghost font-black text-sm p-3 flex items-center gap-1.5 shadow-sm" id="triage-priority-badge">
+          <i data-lucide="alert-octagon" style="width:14px; height:14px;"></i> Not clinically assessed
         </span>
       </div>
     </div>
@@ -90,7 +99,7 @@
           Describe Emergency in Natural Language (English, Hindi, or Manipuri):
         </label>
         <span class="badge badge-ghost text-[10px] font-bold" id="triage-ai-model-tag">
-          Google Gemini 2.5 Flash / Edge Clinical NLP
+          User report only
         </span>
       </div>
 
@@ -98,31 +107,8 @@
         <textarea id="triage-symptoms-text" placeholder="Describe symptoms (e.g. 'Severe chest pain after crush near bridge, unconscious with blue lips' or 'भगदड़ में सीने पर चोट, मरीज बेहोश है')..." class="textarea textarea-bordered w-full text-xs font-medium h-20 bg-white" oninput="window.debounceTriageInput()"></textarea>
       </div>
 
-      <p class="text-xs">Use fictional cases. Clinical validation and real responder integration are pending. No automatic cloud upload while typing.</p><button type="button" class="btn btn-xs" onclick="window.onTriageInputChange(true)">Analyse fictional text with Gemini (online)</button><!-- Quick Multilingual Demo Prompts -->
-      <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
-        <span class="text-slate-400 font-bold">Try Quick Demos:</span>
-        <button type="button" class="btn btn-xs btn-outline" onclick="window.applySymptomDemo('en-crush')">🇬🇧 Stampede Crush (En)</button>
-        <button type="button" class="btn btn-xs btn-outline" onclick="window.applySymptomDemo('hi-stampede')">🇮🇳 भगदड़ बेहोश (Hi)</button>
-        <button type="button" class="btn btn-xs btn-outline" onclick="window.applySymptomDemo('mni-landslide')">🇮🇳 Ching Leikhom (Mni)</button>
-        <button type="button" class="btn btn-xs btn-outline" onclick="window.applySymptomDemo('heatstroke')">☀️ Severe Heatstroke</button>
-      </div>
-    </div>
-
+      <p class="text-xs">Use fictional cases. Clinical validation and real responder integration are pending. No automatic cloud upload while typing.</p><button type="button" class="btn btn-xs" onclick="window.onTriageInputChange(true)">Summarize fictional report with Gemini (online)</button></div>
     <button type="button" class="btn btn-xs" onclick="window.restorePendingRequest()">Restore latest locally saved request</button>
-<!-- Quick Clinical Category Selector (Dropdown Fallback) -->
-    <div style="margin-bottom:1.5rem;">
-      <label style="display:block; font-size:12.5px; font-weight:700; color:var(--dark); margin-bottom:6px;">
-        <i data-lucide="stethoscope" style="width:14px; height:14px; display:inline; color:#ef4444;"></i> Or Select Standard Presentation:
-      </label>
-      <select id="triage-condition-select" onchange="window.onTriageInputChange()" style="width:100%; padding:11px 14px; border-radius:12px; border:1.5px solid rgba(15,23,42,0.12); font-family:var(--font); font-size:13.5px; font-weight:700; background:white; outline:none;">
-        <option value="auto" selected>Unknown / assess fictional text</option><option value="stampede-trauma">Stampede Trauma / Crush Injury & Asphyxia (Kumbh Mela Chokepoint)</option>
-        <option value="heatstroke-dehydration">Severe Dehydration / Heatstroke & Hyperthermia (Midday Ghat Exposure)</option>
-        <option value="landslide-injury">Landslide / Rockfall Trauma & Puncture Wounds (Manipur NH-37/NH-2)</option>
-        <option value="cardiac-respiratory">Cardiac / Acute Respiratory Distress (Dyspnea & Chest Pain)</option>
-        <option value="minor-sprain-abrasion">Minor Walking Wounded / Ankle Sprain & Abrasions</option>
-      </select>
-    </div>
-
     <!-- Clinical Vitals & Symptom Evaluation Row -->
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:1.5rem; background:rgba(255,255,255,0.7); padding:1.25rem; border-radius:16px; border:1px solid rgba(15,23,42,0.06);">
       <div>
@@ -136,19 +122,19 @@
 
       <div style="display:flex; flex-direction:column; justify-content:center; gap:8px;">
         <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800">
-          <input type="checkbox" id="triage-severe-bleeding" onchange="window.onTriageInputChange()" class="checkbox checkbox-error checkbox-sm" />
-          <span>Active Arterial Bleeding</span>
+          <select id="triage-severe-bleeding" onchange="window.onTriageInputChange()" style="background:white;color:#0f172a;padding:8px"><option value="unknown">Unknown</option><option value="yes">Reported</option><option value="no">Reported absent</option></select>
+          <span>Reported severe bleeding</span>
         </label>
         <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800">
-          <input type="checkbox" id="triage-breathing-diff" onchange="window.onTriageInputChange()" class="checkbox checkbox-warning checkbox-sm" />
-          <span>Severe Breathing Difficulty / Cyanosis</span>
+          <select id="triage-breathing-diff" onchange="window.onTriageInputChange()" style="background:white;color:#0f172a;padding:8px"><option value="unknown">Unknown</option><option value="yes">Reported</option><option value="no">Reported absent</option></select>
+          <span>Reported breathing difficulty</span>
         </label>
       </div>
 
       <div>
         <label style="display:block; font-size:12px; font-weight:700; color:var(--dark-muted); margin-bottom:4px;">Pulse Rate (bpm)</label>
         <div class="flex items-center gap-2">
-          <input type="number" id="triage-pulse" placeholder="Unknown" min="30" max="220" onchange="window.onTriageInputChange()" style="width:100%; padding:9px 12px; border-radius:10px; border:1px solid rgba(15,23,42,0.15); font-family:var(--font); font-size:13px; font-weight:700; background:white;" />
+          <input type="number" id="triage-pulse" placeholder="Unknown" min="0" max="350" onchange="window.onTriageInputChange()" style="width:100%; padding:9px 12px; border-radius:10px; border:1px solid rgba(15,23,42,0.15); font-family:var(--font); font-size:13px; font-weight:700; background:white;" />
           <span class="text-xs text-slate-500 font-semibold">bpm</span>
         </div>
       </div>
@@ -157,15 +143,15 @@
     <!-- Computed Priority & Facility Info Banner -->
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px; margin-bottom:1.5rem;">
       <div style="background:rgba(255,255,255,0.9); border-radius:16px; padding:1.25rem; border-left:4px solid #ef4444; box-shadow:var(--shadow-sm);">
-        <div style="font-size:11.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase;">Golden-Hour Target Window</div>
-        <div style="font-size:26px; font-weight:900; color:#ef4444; margin:4px 0;" id="triage-golden-hour">&lt; 20 Minutes</div>
-        <div style="font-size:12px; color:var(--dark-muted);" id="triage-urgency-desc">P1 Critical: Resuscitation and surgical intervention required immediately.</div>
+        <div style="font-size:11.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase;">Response time</div>
+        <div style="font-size:26px; font-weight:900; color:#ef4444; margin:4px 0;" id="triage-golden-hour">Not estimated</div>
+        <div style="font-size:12px; color:var(--dark-muted);" id="triage-urgency-desc">No responder has been contacted.</div>
       </div>
 
       <div style="background:rgba(255,255,255,0.9); border-radius:16px; padding:1.25rem; border-left:4px solid var(--primary); box-shadow:var(--shadow-sm);">
-        <div style="font-size:11.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase;">Designated Health Camp / PHC Facility</div>
-        <div style="font-size:16px; font-weight:800; color:var(--dark); margin:4px 0;" id="triage-facility-name">Kumbh Sector 4 Field Hospital & Resuscitation Center</div>
-        <div style="font-size:12px; color:var(--primary); font-weight:700;" id="triage-distance-text">Estimated Distance: ~420m | Direct Corridor Priority</div>
+        <div style="font-size:11.5px; font-weight:700; color:var(--dark-muted); text-transform:uppercase;">Facility assignment</div>
+        <div style="font-size:16px; font-weight:800; color:var(--dark); margin:4px 0;" id="triage-facility-name">Not assigned — no responder integration</div>
+        <div style="font-size:12px; color:var(--primary); font-weight:700;" id="triage-distance-text">Distance and arrival time unavailable</div>
       </div>
     </div>
 
@@ -173,7 +159,7 @@
     <div id="localized-summary-banner" class="alert-box alert-warn mb-4" style="border-radius:14px; display:none;">
       <i data-lucide="info" style="width:20px; height:20px; flex-shrink:0;"></i>
       <div class="flex flex-col">
-        <span class="font-bold text-xs uppercase" id="localized-summary-lang">AI Reassurance Guidance:</span>
+        <span class="font-bold text-xs uppercase" id="localized-summary-lang">AI draft summary — verify against your report:</span>
         <span class="text-xs" id="localized-summary-text"></span>
       </div>
     </div>
@@ -182,9 +168,9 @@
     <div style="background:rgba(255,255,255,0.95); border-radius:16px; padding:1.25rem; border:1px solid rgba(15,23,42,0.08); margin-bottom:1.5rem;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <span style="font-size:13.5px; font-weight:800; color:var(--dark); display:flex; align-items:center; gap:6px;">
-          <i data-lucide="shield" style="width:16px; height:16px; color:var(--primary);"></i> Actionable Offline-Ready First-Aid Protocol:
+          <i data-lucide="shield" style="width:16px; height:16px; color:var(--primary);"></i> Clinical guidance status:
         </span>
-        <span class="badge badge-ghost text-xs font-semibold">Available Without Internet</span>
+        <span class="badge badge-ghost text-xs font-semibold">Not clinically validated</span>
       </div>
       <div id="first-aid-steps-container" style="display:flex; flex-direction:column; gap:8px;">
         <!-- Injected dynamically -->
@@ -207,26 +193,6 @@
       </div>
     </div>
   </div>
-
-  <!-- District Emergency Directory (Preserved Intact) -->
-  <div class="district-row">
-    <label><i data-lucide="map"></i> Select District Directory:</label>
-    <div class="select-wrapper">
-      <select id="district-select" onchange="loadContacts()">
-        <option value="imphal-east">Imphal East</option>
-        <option value="imphal-west">Imphal West</option>
-        <option value="thoubal">Thoubal</option>
-        <option value="bishnupur">Bishnupur</option>
-        <option value="churachandpur">Churachandpur</option>
-        <option value="senapati">Senapati</option>
-        <option value="ukhrul">Ukhrul</option>
-        <option value="chandel">Chandel</option>
-      </select>
-      <i data-lucide="map-pin"></i>
-    </div>
-  </div>
-
-  <div class="contacts-grid" id="contacts-grid"></div>
 
   <div class="tips-card">
     <h3><i data-lucide="brain"></i> Essential Tourist & Pilgrim Safety Protocol</h3>
@@ -275,7 +241,7 @@
       </form>
     </div>
     <p class="text-xs text-slate-500 mt-3 leading-relaxed">
-      Configure your free Google Gemini API Key to enable generative multilingual medical triage. Without a key, limited local keyword rules run after the page has loaded. Offline app loading and clinical validation are not provided.
+      Configure your own Google Gemini API key for optional draft summaries. Provider quotas and charges depend on your account. The key is stored in browser local storage, accessible to scripts on this site. Do not enter real patient information. There is no local diagnosis fallback.
     </p>
     <div class="mt-4">
       <input type="password" id="gemini-triage-key-input" placeholder="AIzaSy..." class="input input-bordered w-full text-sm font-mono" />
