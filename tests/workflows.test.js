@@ -6,7 +6,7 @@ import * as engine from '../js/risk-engine.js';
 
 // Runs the real page controller with isolated DOM, model and database adapters.
 // It does not contact production Firebase or claim model-accuracy validation.
-function harness(file, overrides = {}) {
+function harness(file, overrides = {}, lineEnding = null) {
   const nodes = new Map();
   const element = () => ({textContent:'', innerHTML:'', value:'', checked:false, disabled:false,
     style:{}, classList:{add(){},remove(){}}, setAttribute(){}, addEventListener(){},
@@ -27,7 +27,11 @@ function harness(file, overrides = {}) {
     alert(){},setTimeout,clearTimeout,AbortSignal,URL, ...overrides};
   context.window=context;
   vm.createContext(context);
-  let source=fs.readFileSync(new URL('../js/'+file,import.meta.url),'utf8').replace(/^import[\s\S]*?;\n/gm,'');
+  let source=fs.readFileSync(new URL('../js/'+file,import.meta.url),'utf8');
+  if (lineEnding) source=source.replace(/\r\n|\r|\n/g,lineEnding);
+  // Git may check out CRLF on Windows; normalize before matching imports and startup calls.
+  source=source.replace(/\r\n?/g,'\n');
+  source=source.replace(/^import[\s\S]*?;\n/gm,'');
   source=source.replace('// Initial crowd calculations\nupdateCrowdTelemetryUI();','');
   source=source.replace('// Initial triggers\nloadContacts();\nwindow.onTriageInputChange();','');
   vm.runInContext(source,context);
@@ -92,3 +96,11 @@ test('Pending database write times out honestly; late acknowledgement clears loc
   resolveCommit();await new Promise(r=>setImmediate(r));
   assert.equal(h.storage.getItem('exploreguard.pending.test-user.request-1'),null);
 });
+
+for (const lineEnding of ['\n', '\r\n']) {
+  test(`Controllers load with ${lineEnding === '\n' ? 'LF' : 'CRLF'} line endings`, () => {
+    for (const file of ['tracker.js', 'safety.js']) {
+      assert.doesNotThrow(() => harness(file, {}, lineEnding));
+    }
+  });
+}
