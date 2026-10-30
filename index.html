@@ -38,15 +38,16 @@
   <link rel="stylesheet" href="css/index.css">
 </head>
 <body>
+<div role="note" style="padding:12px 20px;background:#fff7ed;color:#7c2d12;font:14px/1.5 sans-serif;border-bottom:1px solid #fed7aa">Student prototype: experimental hazard indicators, person detection and demo request recording. Offline delivery, clinical validation and real responder integration are planned.</div>
 <nav>
   <a class="logo" href="index.html">
     <i data-lucide="map"></i> ExploreGuard
   </a>
   <div class="nav-links">
     <a href="#features">Features</a>
-    <a href="alerts.html">AI Risk Engine</a>
+    <a href="alerts.html">Weather & terrain</a>
     <a href="tracker.html">Crowd Telemetry</a>
-    <a href="safety.html">Medical Triage</a>
+    <a href="safety.html">Incident reports</a>
   </div>
   <a class="nav-cta" href="login.html">Launch Console</a>
 </nav>
@@ -56,59 +57,40 @@
     <i data-lucide="sparkles" style="width:16px; height:16px;"></i> Hack for Social Cause (VBYLD 2027) · Disaster Mitigation, Kumbh Mela & Health Service Delivery
   </div>
   <h1>Smart <span>disaster mitigation</span> &<br/>mass-gathering crowd safety</h1>
-  <p>Protecting vulnerable transit corridors across Northeast India and high-density pilgrimage zones with real-time AI landslide risk prediction, crowd stampede telemetry, and golden-hour emergency medical triage.</p>
+  <p>Exploring disaster preparedness through location-specific weather and terrain, browser-based person detection, and incident reporting. Validated disaster forecasting, clinical triage and responder integration remain development goals.</p>
   <div class="hero-btns">
     <a class="btn-primary" href="dashboard.html">Access Platform <i data-lucide="arrow-right"></i></a>
     <a class="btn-secondary" href="#features">Explore Innovations <i data-lucide="arrow-down"></i></a>
   </div>
 </section>
 
-<div class="stats">
-  <div class="stat">
-    <div class="stat-num">50+</div>
-    <div class="stat-label">Corridors & Sectors</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">&lt; 20m</div>
-    <div class="stat-label">Golden-Hour Window</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">4 Sectors</div>
-    <div class="stat-label">Kumbh Mela Telemetry</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">100%</div>
-    <div class="stat-label">Serverless & Offline-Ready</div>
-  </div>
-</div>
-
 <section class="features" id="features">
   <div class="section-header">
     <span class="section-label">Hackathon Innovation Highlights</span>
     <h2 class="section-title">Engineered for real-world humanitarian impact</h2>
-    <p class="section-sub">Combining multi-sensor meteorological feeds, geomorphological terrain modeling, pedestrian density dynamics, and clinical triage protocols.</p>
+    <p class="section-sub">A working prototype for provider data, photo analysis and fictional incident reports, with clear limits on what each output means.</p>
   </div>
   <div class="features-grid">
     <div class="feature-card">
       <div class="f-icon-box" style="background:#e1f5ee; color:#1D9E75;">
         <i data-lucide="cloud-lightning"></i>
       </div>
-      <div class="f-title">AI Landslide & Disaster Predictor</div>
-      <div class="f-desc">Ingests live OpenWeather telemetry + Manipur highway terrain weights (NH-2/NH-37 & flood basins) to calculate real-time probability scores and evacuation advisories.</div>
+      <div class="f-title">Weather & terrain observations</div>
+      <div class="f-desc">Retrieves Open-Meteo modelled conditions and elevation for a selected location. No unsupported disaster probabilities or evacuation instructions.</div>
     </div>
     <div class="feature-card">
       <div class="f-icon-box" style="background:#e0f2fe; color:#0284c7;">
         <i data-lucide="users"></i>
       </div>
-      <div class="f-title">Kumbh Mela Crowd Telemetry</div>
-      <div class="f-desc">Sector-by-sector crowd density monitoring (persons/m²), automated chokepoint bottleneck triggers, and dynamic decongestion rerouting protocols.</div>
+      <div class="f-title">Photo person detection</div>
+      <div class="f-desc">Runs RT-DETR or COCO-SSD on uploaded photos and webcam frames in your browser. Counts need evaluation; no venue density or safe route is inferred.</div>
     </div>
     <div class="feature-card">
       <div class="f-icon-box" style="background:#fee2e2; color:#ef4444;">
         <i data-lucide="heart-pulse"></i>
       </div>
-      <div class="f-title">AI Golden-Hour Medical Triage</div>
-      <div class="f-desc">Clinical START/Manchester triage for stampede trauma, heatstroke, and landslide casualties. Renders offline first-aid steps and logs GPS SOS dispatches to Firestore.</div>
+      <div class="f-title">AI Golden-Hour Incident reports</div>
+      <div class="f-desc">Records fictional reports with unknown observations preserved. Optional Gemini draft summaries support human review; no clinical priority or real dispatch is provided.</div>
     </div>
     <div class="feature-card">
       <div class="f-icon-box">
