@@ -29,3 +29,18 @@ export function parseElevation(data, lat, lon, offset = 0.005) {
   const gradient = Math.hypot((north-south)/dy, (east-west)/dx);
   return {elevation: center, slope: Math.atan(gradient)*180/Math.PI};
 }
+
+export function parseRiverForecast(data, today = new Date().toISOString().slice(0,10)) {
+  validateCoordinates(data?.latitude, data?.longitude);
+  const dates = data?.daily?.time, values = data?.daily?.river_discharge;
+  if (data?.daily_units?.river_discharge !== 'm³/s' || !Array.isArray(dates) || !Array.isArray(values) || dates.length !== values.length || !dates.length) {
+    throw new Error('River forecast response is incomplete or has unexpected units');
+  }
+  const rows = dates.map((date, index) => {
+    if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date+'T00:00:00Z')) || (index && date <= dates[index-1])) throw new Error('Invalid forecast dates');
+    const value = values[index];
+    return {date, flow: typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null};
+  }).filter(row => row.date >= today).slice(0,7);
+  if (!rows.some(row => row.flow !== null)) throw new Error('No current river forecast data available for this grid cell');
+  return {lat:data.latitude, lon:data.longitude, rows};
+}

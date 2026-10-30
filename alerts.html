@@ -1,63 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ExploreGuard — Weather & Terrain Observations</title>
-  <!-- Premium Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- Tailwind CSS & DaisyUI CDN (Scoped & Safe) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      corePlugins: { preflight: false },
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#e1f5ee',
-              100: '#bce8da',
-              500: '#1D9E75',
-              600: '#157A5A',
-              700: '#0e553e'
-            }
-          }
-        }
-      }
-    }
-  </script>
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
-
-  <!-- Lucide Icons CDN -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Linked Modular Stylesheets -->
-  <link rel="stylesheet" href="css/global.css">
-  <link rel="stylesheet" href="css/alerts.css">
-  
-  <!-- Safe configuration loader -->
-  <script>window.CONFIG = window.CONFIG || {};</script>
-
-</head>
-<body>
-<nav><a class="nav-logo" href="index.html">ExploreGuard</a><a href="dashboard.html">Dashboard</a></nav>
-<main class="container" style="max-width:980px">
-<h1>Weather & terrain observations</h1>
-<p>Retrieve modelled weather and elevation for a location. No trained, locally validated landslide or flood prediction model is connected.</p>
-<form onsubmit="event.preventDefault();window.loadEnvironment()" style="display:flex;gap:12px;flex-wrap:wrap;margin:24px 0">
-<input id="city-input" aria-label="City" placeholder="Enter city, e.g. Imphal" style="padding:12px;border:1px solid #94a3b8;border-radius:8px;flex:1;min-width:180px">
-<button type="submit" class="search-btn">Retrieve data</button><button type="button" class="search-btn" onclick="window.useEnvironmentGPS()">Use my location</button>
-</form>
-<p id="environment-status" role="status" aria-live="polite">Choose a location to begin.</p><h2 id="location-result">Location not selected</h2>
-<div class="readings"><article class="reading"><h3>Temperature</h3><p id="weather-temperature">Unavailable</p></article><article class="reading"><h3>Precipitation during provider interval</h3><p id="weather-rain">Unavailable</p></article><article class="reading"><h3>Relative humidity</h3><p id="weather-humidity">Unavailable</p></article><article class="reading"><h3>Wind speed</h3><p id="weather-wind">Unavailable</p></article><article class="reading"><h3>Surface pressure</h3><p id="weather-pressure">Unavailable</p></article><article class="reading"><h3>Elevation at selected point</h3><p id="terrain-elevation">Unavailable</p></article><article class="reading"><h3>Coarse surrounding slope</h3><p id="terrain-slope">Unavailable</p></article></div>
-<p id="weather-source"></p><p id="terrain-source"></p>
-<section class="reading" style="margin-top:24px"><h2>Disaster prediction: unavailable</h2>
-<p>Weather and slope alone cannot establish landslide or flood probability. Soil, geology, drainage, rainfall history and labelled local events are needed to train and evaluate an appropriate model. The earlier preset percentages and automated evacuation instructions have been removed.</p>
-<p>Use official local warnings and verified routes for decisions. This page does not assign shelters or claim that an area is safe.</p></section>
-<p style="margin:18px 0">Data: <a href="https://open-meteo.com/">Open-Meteo</a>. Location search returns the first match; check the displayed coordinates. Internet is required.</p>
-</main>
-<style>.container{padding:24px}.readings{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:20px 0}.reading{padding:20px;border:1px solid #dbe5e0;border-radius:16px;background:white}.reading h3{font-size:14px;color:#475569}.reading>p[id]{font-size:25px;font-weight:700;color:#157a5a}#weather-source,#terrain-source{font-size:13px;margin:12px 0}h1{font-size:28px}h2{font-size:20px}</style>
-<script type="module" src="js/alerts.js"></script>
-</body></html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ExploreGuard — Weather & River Outlook</title><link rel="stylesheet" href="css/environment.css"></head>
+<body class="environment-page">
+<nav><a class="brand" href="index.html">ExploreGuard<span aria-hidden="true"> / </span></a><a href="dashboard.html">Back to dashboard</a></nav>
+<main>
+<span class="eyebrow">Plan with better information</span>
+<h1>Weather & river outlook</h1><p class="intro">Check conditions, surrounding terrain and a seven-day river-flow forecast for your location. Start with a city or your device location.</p>
+<section class="panel" aria-label="Location search">
+<form onsubmit="event.preventDefault();window.loadEnvironment()"><label for="city-input">Where would you like to check?</label><div class="search-controls"><input id="city-input" placeholder="City or town, e.g. Shillong" autocomplete="off" required><button type="submit">Find location</button><button type="button" class="secondary" onclick="window.useEnvironmentGPS()">Use my location</button></div></form>
+<p class="hint">Choose the correct place from the search results. GPS requires your permission.</p><p id="environment-status" class="status" role="status" aria-live="polite">Ready to search</p><div id="location-choices" class="results-list" aria-label="Matching locations"></div>
+</section>
+<div id="environment-empty" class="empty-state"><strong>Your location overview will appear here</strong><p>No sample readings are shown. Data is retrieved when you choose a location.</p></div>
+<div id="environment-results" hidden>
+<div class="location-head"><div><span class="eyebrow">Selected location</span><h2 id="location-result">Location not selected</h2><p id="location-coordinates" class="hint"></p></div><button type="button" class="secondary" onclick="window.refreshEnvironment()">Refresh data</button></div>
+<section class="panel"><div class="section-head"><h2>Current weather</h2><span class="model-tag">Open-Meteo · modelled conditions</span></div>
+<div class="readings">
+<article class="reading"><h3>Temperature</h3><p id="weather-temperature">—</p></article><article class="reading"><h3>Precipitation</h3><p id="weather-rain">—</p><span class="hint">During the stated interval</span></article><article class="reading"><h3>Humidity</h3><p id="weather-humidity">—</p></article><article class="reading"><h3>Wind speed</h3><p id="weather-wind">—</p></article>
+</div><p id="weather-source" class="hint"></p><details><summary>Pressure & data details</summary><p>Surface pressure: <strong id="weather-pressure">—</strong></p><p class="hint">These are weather-model values, not readings from a sensor at your exact position. A zero precipitation value describes only the stated interval.</p></details></section>
+<section class="panel" aria-labelledby="river-title"><div class="section-head"><div><span class="eyebrow">Forecast model</span><h2 id="river-title">Next seven days: river flow</h2></div><span class="model-tag">Copernicus GloFAS</span></div>
+<p>See how much water the model expects to flow through a nearby river grid cell, in cubic metres per second (m³/s).</p><button type="button" id="load-river-button" onclick="window.loadRiverForecast()">Load river forecast</button>
+<p id="river-status" class="status" role="status" aria-live="polite">Choose a location, then load its forecast.</p><div id="river-result" hidden><p id="river-summary"></p><table><caption class="hint">Daily modelled river flow · UTC dates</caption><thead><tr><th scope="col">Date</th><th scope="col">Flow (m³/s)</th><th scope="col">Relative flow</th></tr></thead><tbody id="river-rows"></tbody></table><p id="river-source" class="hint"></p><a id="river-map-link" target="_blank" rel="noopener noreferrer">View returned grid location on OpenStreetMap ↗</a></div>
+<p class="notice">River flow is not a flood probability or a street-level flood warning. The roughly 5 km grid can select a different river from the one you intend. Local flood thresholds and river identity have not been verified.</p>
+<details><summary>What powers this forecast?</summary><p>GloFAS uses a hydrological model driven by weather forecasts. ExploreGuard retrieves its published output through Open-Meteo; we do not train or run this global model in your browser.</p><a href="https://open-meteo.com/en/docs/flood-api" target="_blank" rel="noopener noreferrer">Data source & model documentation ↗</a></details>
+</section>
+<div class="two-column"><section class="panel"><h2>Surrounding terrain</h2><div class="terrain-readings"><article class="reading"><h3>Elevation</h3><p id="terrain-elevation">—</p></article><article class="reading"><h3>Approximate slope</h3><p id="terrain-slope">—</p></article></div><details><summary>How to interpret terrain</summary><p id="terrain-source" class="hint"></p><p class="hint">The elevation grid describes the surrounding landscape, not an individual road cutting or unstable hillside.</p></details></section>
+<section class="panel"><span class="eyebrow">Landslide information</span><h2>NASA LHASA</h2><p>NASA publishes global model estimates of rainfall-triggered landslide hazard. This is a separate source; a local LHASA result is not yet loaded here.</p><a class="action-link" href="https://landslides.nasa.gov/viewer" target="_blank" rel="noopener noreferrer">Open NASA landslide map ↗</a><details><summary>Why a separate map?</summary><p>Running LHASA requires satellite rainfall, soil moisture and large geospatial datasets. Its regional hazard estimates do not replace a local site assessment.</p></details></section></div>
+</div>
+<p class="hint" style="margin-top:28px">Use official local warnings for safety decisions. Forecasts can be wrong or unavailable. Sources: <a href="https://open-meteo.com/">Open-Meteo</a>, <a href="https://global-flood.emergency.copernicus.eu/">Copernicus GloFAS</a> and <a href="https://github.com/nasa/LHASA">NASA LHASA</a>.</p>
+</main><script type="module" src="js/alerts.js"></script></body></html>

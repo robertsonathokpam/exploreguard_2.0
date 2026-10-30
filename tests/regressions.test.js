@@ -65,3 +65,13 @@ test('Lighter detector explicitly loads full MobileNet V2 rather than Lite', asy
   assert.equal(await createPersonDetector('mobilenet',{cocoSsd:{load:async c=>{config=c;return detector;}}}),detector);
   assert.equal(config.base,'mobilenet_v2');
 });
+
+import {parseRiverForecast} from '../js/environment-data.js';
+test('River parser rejects stale forecasts, incorrect units and invalid series',()=>{
+  const data={latitude:0,longitude:0,daily_units:{river_discharge:'m³/s'},daily:{time:['2026-10-30','2026-10-31'],river_discharge:[0,null]}};
+  assert.equal(parseRiverForecast(data,'2026-10-30').rows[0].flow,0);
+  assert.equal(parseRiverForecast(data,'2026-10-30').rows[1].flow,null);
+  assert.throws(()=>parseRiverForecast(data,'2026-11-01'));
+  assert.throws(()=>parseRiverForecast({...data,daily_units:{river_discharge:'mm'}},'2026-10-30'));
+  assert.throws(()=>parseRiverForecast({...data,daily:{time:['2026-10-30'],river_discharge:[]}},'2026-10-30'));
+});

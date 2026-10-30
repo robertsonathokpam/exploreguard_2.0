@@ -14,7 +14,7 @@ The user reported severe undercounting on an illustrated crowd, a broken image l
 
 ## Automated verification
 
-`npm test` includes 56 **legacy simulation assertions** and 23 regression/controller tests. Legacy assertions exercise old formulas, which the active pages no longer import. They are not a forecast, language or clinical validation report.
+`npm test` includes 56 **legacy simulation assertions** and 28 regression/controller tests. Legacy assertions exercise old formulas, which the active pages no longer import. They are not a forecast, language or clinical validation report.
 
 New tests cover real controller behaviour with isolated DOM/Firebase/model adapters: empty detections, inference failures, stale images, clean rescans, database rejection/timeouts, Windows CRLF loading, provider missing values vs explicit zeros, model adapter coordinates, unsupported medical assignment removal, Gemini failure/stale results and weather/elevation failure states. Adapter tests do not run neural-network weights or prove model accuracy. No tests send production Firebase writes.
 
@@ -31,3 +31,11 @@ Run with `npm test` and `py -m http.server 8000` on Windows. Use fictional input
 ## Browser smoke test for this revision
 
 Headless Chromium successfully loaded the actual RT-DETR quantized weights and performed inference through the photo-upload UI on the supplied illustrated screenshot. This was a loading/output smoke test, not an accuracy benchmark (the screenshot already contains old annotations). The weather page retrieved actual Open-Meteo weather/elevation data for Imphal. The medical page retained unknown priority and unavailable distance for the supplied fictional heatstroke-like narrative. Authentication and Firestore were mocked to avoid production data access; Gemini with a real key, actual webcam capture, and deployment remain unverified. Browser network requests were proxied through the test runner because direct browser egress was unavailable in the editing environment.
+
+## Weather & river outlook revision
+
+- Rebuilt the weather UI with readable typography, explicit location-choice buttons, an empty state, refresh action, separate weather/terrain/river sections and expandable source details. Dashboard now has a clear action linking to the outlook.
+- Added optional seven-day Copernicus GloFAS river-discharge retrieval through Open-Meteo's free non-commercial endpoint. Uses the provider default model (documentation currently describes GloFAS v4); no unsupported model-selector parameter is sent. Dates, units, returned grid coordinates, retrieval time and missing values are retained. No river name, local flood threshold, danger colour or flood probability is invented.
+- NASA LHASA is presented as an external model/map, not falsely described as running in this site.
+- Added five tests for forecast validation, missing vs zero flow, stale requests, ambiguous place names and provider failure. All 28 regression/controller tests and 56 legacy simulation assertions pass.
+- Actual browser check: selected Shillong from two search matches and loaded seven river forecast rows. Desktop and 390px screenshots reviewed; no horizontal overflow. Auth was mocked and provider requests passed through the runner's network proxy, as in the previous browser check. No production Firebase writes or deployment changes.

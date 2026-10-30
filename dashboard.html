@@ -40,9 +40,10 @@
   <!-- Safe configuration loader -->
   <script>window.CONFIG = window.CONFIG || {};</script>
   <script src="config.js"></script>
+<link rel="stylesheet" href="css/environment.css">
 </head>
 <body>
-<div role="note" style="padding:12px 20px;background:#fff7ed;color:#7c2d12;font:14px/1.5 sans-serif;border-bottom:1px solid #fed7aa">Prototype: retrieve weather and terrain, inspect photo detections and record fictional incidents. No validated disaster model or emergency dispatch service is connected.</div>
+<div role="note" style="padding:12px 20px;background:#fff7ed;color:#7c2d12;font:14px/1.5 sans-serif;border-bottom:1px solid #fed7aa">Prototype: explore weather and river forecasts, inspect photo detections and record fictional incidents. Forecasts are not official local warnings; no emergency dispatch service is connected.</div>
 <nav>
   <a class="nav-logo" href="index.html">
     <i data-lucide="map" style="stroke-width:2.5px;"></i> ExploreGuard
@@ -83,15 +84,15 @@
       <div class="card-icon-box" style="background:#e1f5ee; color:#1D9E75;">
         <i data-lucide="cloud-lightning"></i>
       </div>
-      <div class="card-title">Weather & Risk Engine</div>
-      <div class="card-sub">Retrieved weather and elevation; no disaster probabilities</div>
+      <div class="card-title">Weather & river outlook</div>
+      <div class="card-sub">Weather, terrain and modelled river flow</div>
     </a>
     <a class="card" href="tracker.html">
       <div class="card-icon-box" style="background:#e0f2fe; color:#0284c7;">
         <i data-lucide="users"></i>
       </div>
       <div class="card-title">Crowd & GPS Tracker</div>
-      <div class="card-sub">Kumbh Mela crowd density & satellite coordinates</div>
+      <div class="card-sub">Photo person detection & location sharing</div>
     </a>
     <a class="card" href="safety.html">
       <div class="card-icon-box" style="background:#fee2e2; color:#ef4444;">
@@ -102,7 +103,7 @@
     </a>
   </div>
 
-  <section style="background:white;padding:24px;border-radius:16px;margin:24px 0"><h3>Weather & terrain observations</h3><p>No validated disaster prediction model is connected. Retrieve location-specific provider data without preset risk percentages.</p><a href="alerts.html">Open weather & terrain</a></section>
+  <section class="forecast-promo"><div><span class="eyebrow">Explore your surroundings</span><h3>Weather & river outlook</h3><p>Choose a location to check current conditions, surrounding terrain and a seven-day GloFAS river-flow forecast.</p></div><a href="alerts.html">Check a location →</a></section>
   <div class="bookings-section">
     <h3><i data-lucide="ticket"></i> Active Boarding Passes</h3>
     <div id="bookings-list">

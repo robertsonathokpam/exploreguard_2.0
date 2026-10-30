@@ -4,7 +4,7 @@ A student prototype exploring disaster information, photo person detection and i
 
 ## Current pages
 
-- **Weather & terrain (`alerts.html`)**: retrieves Open-Meteo modelled conditions and a five-point elevation grid for a searched city or device coordinates. Displays source, timestamp and units. Missing data stays unavailable. No hardcoded disaster probability, soil properties, shelter assignment or evacuation route is used.
+- **Weather & river outlook (`alerts.html`)**: location search offers matching places before retrieval. Shows Open-Meteo conditions and terrain plus an optional seven-day Copernicus GloFAS river-discharge forecast. Published forecasts are retrieved, not trained in the browser. Units, UTC forecast dates, returned grid coordinates and source details are shown. River flow is not a flood probability. NASA LHASA is linked as an external map, not claimed as an integrated local forecast. See [MODEL_OPTIONS.md](MODEL_OPTIONS.md).
 - **Photo detection (`tracker.html`)**: offers RT-DETR R18 via Transformers.js (quantized ONNX/WASM) and full COCO-SSD MobileNet V2 via TensorFlow.js. Images are processed in the browser. Only model-returned person boxes are counted. No sample sectors, synthetic detections, count multiplier or automatic crowd-density estimate is used. Dense/occluded crowds and illustrations can be miscounted. Actual accuracy has not been benchmarked.
 - **Incident reporting (`safety.html`)**: records the entered fictional report and observations. Unknown vitals remain unknown. Optional Gemini draft summarization runs only when explicitly requested. No local keyword diagnosis, coloured medical priority, treatment, facility assignment, distance or ETA is produced. Requests stored in Firestore are demo records, not responder dispatches.
 - Existing authentication, booking and GPS sharing remain prototypes and require their own integration/security review.
@@ -34,4 +34,4 @@ To evaluate counting, assemble consented real photos with independently labelled
 - TensorFlow COCO-SSD options: https://github.com/tensorflow/tfjs-models/tree/master/coco-ssd
 - Open-Meteo weather and elevation documentation: https://open-meteo.com/en/docs
 
-Clinical triage, validated local disaster prediction, real responder integration, safe routing and full offline delivery remain future work.
+Clinical triage, locally validated warning thresholds, integrated LHASA outputs, real responder integration, safe routing and full offline delivery remain future work.

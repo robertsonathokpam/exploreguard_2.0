@@ -4,14 +4,14 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import * as engine from '../js/risk-engine.js';
 import {createPersonDetector} from '../js/vision-model.js';
-import {validateCoordinates, parseWeather, parseElevation} from '../js/environment-data.js';
+import {validateCoordinates, parseWeather, parseElevation, parseRiverForecast} from '../js/environment-data.js';
 
 // Runs the real page controller with isolated DOM, model and database adapters.
 // It does not contact production Firebase or claim model-accuracy validation.
 function harness(file, overrides = {}, lineEnding = null) {
   const nodes = new Map();
   const element = () => ({textContent:'', innerHTML:'', value:'', checked:false, disabled:false,
-    style:{}, classList:{add(){},remove(){}}, setAttribute(){}, addEventListener(){},
+    children:[], append(...children){this.children.push(...children)},replaceChildren(...children){this.children=children}, style:{}, classList:{add(){},remove(){}}, setAttribute(){}, addEventListener(){},
     width:600,height:280, pixels:0,
     getContext(){ const owner=this; return {drawImage(src){owner.pixels=src.pixels ?? 0;},
       strokeRect(){owner.pixels++;},fillRect(){},fillText(){},measureText(){return {width:80};}}; }
@@ -20,7 +20,7 @@ function harness(file, overrides = {}, lineEnding = null) {
     createElement:element,querySelector(){return element();},querySelectorAll(){return []}};
   const storage={getItem(k){return this[k]??null},setItem(k,v){this[k]=v},removeItem(k){delete this[k]}};
   let commits=0; const writes=[];
-  const context={...engine,validateCoordinates,parseWeather,parseElevation,AbortController,document,console:{log(){},warn(){}},performance,crypto,
+  const context={...engine,validateCoordinates,parseWeather,parseElevation,parseRiverForecast,AbortController,document,console:{log(){},warn(){}},performance,crypto,
     localStorage:storage,navigator:{},location:{origin:'http://localhost'},lucide:{createIcons(){}},
     auth:{},db:{},onAuthStateChanged(a,fn){fn({uid:'test-user',email:'test@example.invalid'});},
     doc(db,collection,id){return collection+'/'+id},
@@ -171,4 +171,42 @@ test('A valid AI summary never changes clinical priority or assigns a responder'
   assert.equal(h.run('currentTriageAssessment.localizedSummary'),'Fictional report supplied by the user.');
   assert.equal(h.run('currentTriageAssessment.priority'),'UNKNOWN');
   assert.equal(h.run('currentTriageAssessment.recommendedFacility'),null);
+});
+
+const forecastDate = new Date().toISOString().slice(0,10);
+const riverResponse = values => ({latitude:25.575,longitude:91.875,daily_units:{river_discharge:'m³/s'},daily:{time:values.map((_,i)=>new Date(Date.parse(forecastDate+'T00:00:00Z')+i*86400000).toISOString().slice(0,10)),river_discharge:values}});
+test('River forecast preserves zero/missing days and labels partial output', async () => {
+  const h=harness('alerts.js',{fetch:async url=>url.includes('flood-api')?{ok:true,json:async()=>riverResponse([0,null,3])}:{ok:false,status:503}});
+  await h.context.loadEnvironment({lat:25,lon:91,name:'Test location'});
+  await h.context.loadRiverForecast();
+  const rows=h.document.getElementById('river-rows').children;
+  assert.equal(rows[0].children[1].textContent,'0');
+  assert.equal(rows[1].children[1].textContent,'Unavailable');
+  assert.match(h.document.getElementById('river-status').textContent,/Partial/);
+  assert.match(h.document.getElementById('river-summary').textContent,/not a flood severity/);
+});
+test('A changed location invalidates pending river forecasts', async () => {
+  let release;
+  const h=harness('alerts.js',{fetch:async url=>url.includes('flood-api')?new Promise(resolve=>{release=resolve}):{ok:false,status:503}});
+  await h.context.loadEnvironment({lat:25,lon:91,name:'Old place'});
+  const pending=h.context.loadRiverForecast();
+  await h.context.loadEnvironment({lat:26,lon:92,name:'New place'});
+  release({ok:true,json:async()=>riverResponse([50,60])});await pending;
+  assert.equal(h.document.getElementById('river-result').hidden,true);
+  assert.equal(h.document.getElementById('location-result').textContent,'New place');
+});
+test('Search presents alternatives without automatically loading the first city', async () => {
+  const h=harness('alerts.js',{fetch:async()=>({ok:true,json:async()=>({results:[{name:'Springfield',country:'A',latitude:20,longitude:40},{name:'Springfield',country:'B',latitude:30,longitude:50}]})})});
+  h.document.getElementById('city-input').value='Springfield';
+  await h.context.loadEnvironment();
+  assert.equal(h.document.getElementById('location-choices').children.length,2);
+  assert.equal(h.run('currentLocation'),null);
+});
+test('Failed river provider request leaves no forecast or safe classification', async () => {
+  const h=harness('alerts.js',{fetch:async()=>({ok:false,status:503})});
+  await h.context.loadEnvironment({lat:25,lon:91,name:'Test location'});
+  await h.context.loadRiverForecast();
+  assert.equal(h.document.getElementById('river-result').hidden,true);
+  assert.match(h.document.getElementById('river-status').textContent,/unavailable/);
+  assert.equal(h.document.getElementById('load-river-button').disabled,false);
 });
