@@ -26,7 +26,7 @@ function harness(file, overrides = {}, lineEnding = null) {
     doc(db,collection,id){return collection+'/'+id},
     writeBatch(){return {set(path,payload){writes.push({path,payload})},commit(){commits++;return Promise.resolve();}}},
     setDoc(){return Promise.resolve()},deleteDoc(){return Promise.resolve()},
-    alert(){},setTimeout,clearTimeout,AbortSignal,URL, ...overrides};
+    alert(){},setTimeout,clearTimeout,AbortSignal,URL,URLSearchParams, ...overrides};
   context.createPersonDetector = choice => createPersonDetector(choice, {cocoSsd: overrides.cocoSsd});
   context.window=context;
   vm.createContext(context);
@@ -282,4 +282,35 @@ test('Model list fails honestly and ignores results for an edited key',async()=>
   await failed.context.loadGeminiModels();
   assert.match(failed.document.getElementById('gemini-settings-status').textContent,/denied access/);
   assert.equal(failed.document.getElementById('gemini-model-select').disabled,true);
+});
+
+test('Photo corrections preserve AI count, undo edits, and reset on a new photo',async()=>{
+  const h=harness('tracker.js',{cocoSsd:{load:async()=>({detect:async()=>[{class:'person',score:.9,bbox:[10,10,30,60]}]})}});
+  h.context.source={width:600,height:280,pixels:0}; h.run('setVisionSource(source)');
+  await h.context.runVisionDetection();
+  const canvas=h.document.getElementById('vision-canvas'); canvas.getBoundingClientRect=()=>({left:0,top:0,width:300,height:140});
+  h.context.editPhotoReview({clientX:200,clientY:90});
+  h.context.finishPhotoReview(); assert.match(h.document.getElementById('review-count').textContent,/2 visible/);
+  assert.equal(h.document.getElementById('vision-detected-count').textContent,'1 detected');
+  h.context.undoPhotoReview(); assert.match(h.document.getElementById('review-count').textContent,/1 — review in progress/);
+  h.context.editPhotoReview({clientX:12.5,clientY:12.5}); h.context.finishPhotoReview();
+  assert.match(h.document.getElementById('review-count').textContent,/0 visible/);
+  h.run('setVisionSource(source)'); h.context.finishPhotoReview();
+  assert.equal(h.document.getElementById('review-count').textContent,'Not reviewed');
+});
+test('NASA NoData stays unknown; numerical output carries an unverified-date label',async()=>{
+  let value='NoData';
+  const h=harness('alerts.js',{fetch:async()=>({ok:true,json:async()=>({value})})});
+  h.run('currentLocation={lat:25.5,lon:91.8}'); await h.context.loadLandslide();
+  assert.match(h.document.getElementById('landslide-value').textContent,/No usable/);
+  value='0'; await h.context.loadLandslide();
+  assert.match(h.document.getElementById('landslide-value').textContent,/0.00/);
+  assert.match(h.document.getElementById('landslide-status').textContent,/Date unverified/);
+});
+test('Changing location discards an old NASA response',async()=>{
+  let release;
+  const h=harness('alerts.js',{fetch:async()=>({ok:true,json:()=>new Promise(r=>release=r)})});
+  h.run('currentLocation={lat:25.5,lon:91.8}'); const pending=h.context.loadLandslide();
+  await new Promise(r=>setImmediate(r)); h.run('revision++; reset()'); release({value:0.8}); await pending;
+  assert.equal(h.document.getElementById('landslide-value').textContent,'Not checked');
 });
