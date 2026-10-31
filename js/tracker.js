@@ -15,6 +15,64 @@ let visionSource = null;
 let visionRevision = 0;
 let visionBusy = false;
 
+// Corrections are local to this photo; they never represent a venue total.
+let reviewPeople = [], originalPeople = [], reviewHistory = [], reviewReady = false;
+function resetPhotoReview() {
+  reviewPeople = []; originalPeople = []; reviewHistory = []; reviewReady = false;
+  document.getElementById('review-count').textContent = 'Not reviewed';
+  document.getElementById('review-status').textContent = 'Scan a photo, then check each marker.';
+  document.getElementById('review-list').replaceChildren();
+}
+function renderPhotoReview() {
+  if (!visionSource) return;
+  const canvas = document.getElementById('vision-canvas'), ctx = canvas.getContext('2d');
+  ctx.drawImage(visionSource, 0, 0);
+  const list = document.getElementById('review-list'); list.replaceChildren();
+  reviewPeople.forEach((p, i) => {
+    const size = Math.max(20, canvas.width / (canvas.clientWidth || canvas.width) * 22);
+    ctx.fillStyle = p.manual ? '#1d4ed8' : '#047857';
+    ctx.fillRect(p.x-size/2, p.y-size/2, size, size);
+    ctx.font = `bold ${size*.65}px sans-serif`; ctx.fillStyle = '#fff';
+    ctx.fillText(String(i+1), p.x-size/3, p.y+size/4);
+    const button = document.createElement('button'); button.type = 'button';
+    button.textContent = `Remove person ${i+1}${p.manual ? ' (added)' : ''}`;
+    button.onclick = () => removeReviewPerson(i); list.append(button);
+  });
+  document.getElementById('review-count').textContent = `${reviewPeople.length} — review in progress`;
+  document.getElementById('review-status').textContent = 'Tap a missed person to add a marker. Tap a marker to remove it. Then finish your review.';
+}
+function rememberReview() { reviewHistory.push(reviewPeople.map(p=>({...p}))); }
+function removeReviewPerson(i) {
+  if (!reviewReady || visionBusy) return;
+  rememberReview(); reviewPeople.splice(i,1); renderPhotoReview();
+}
+window.editPhotoReview = event => {
+  if (!reviewReady || visionBusy) return;
+  const canvas = document.getElementById('vision-canvas'), rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const x = (event.clientX-rect.left)/rect.width*canvas.width;
+  const y = (event.clientY-rect.top)/rect.height*canvas.height;
+  if (x<0 || y<0 || x>canvas.width || y>canvas.height) return;
+  // Hit testing uses screen pixels, including on a resized mobile canvas.
+  let nearest=-1, distance=22;
+  reviewPeople.forEach((p,i)=>{const d=Math.hypot((p.x-x)*rect.width/canvas.width,(p.y-y)*rect.height/canvas.height);if(d<distance){distance=d;nearest=i;}});
+  if(nearest>=0) { removeReviewPerson(nearest); return; }
+  rememberReview(); reviewPeople.push({x,y,manual:true}); renderPhotoReview();
+};
+window.undoPhotoReview = () => {
+  if (!reviewReady || visionBusy || !reviewHistory.length) return;
+  reviewPeople = reviewHistory.pop(); renderPhotoReview();
+};
+window.restorePhotoReview = () => {
+  if (!reviewReady || visionBusy) return;
+  rememberReview(); reviewPeople = originalPeople.map(p=>({...p})); renderPhotoReview();
+};
+window.finishPhotoReview = () => {
+  if (!reviewReady || visionBusy) return;
+  document.getElementById('review-count').textContent = `${reviewPeople.length} visible people — reviewed by you`;
+  document.getElementById('review-status').textContent = 'Review complete. Hidden or unclear people can still be missed. Any edit starts a new review.';
+};
+
 function setVisionSource(source) {
   const width = source.naturalWidth || source.videoWidth || source.width;
   const height = source.naturalHeight || source.videoHeight || source.height;
@@ -25,6 +83,7 @@ function setVisionSource(source) {
   visionSource.height = Math.round(height * scale);
   visionSource.getContext('2d').drawImage(source, 0, 0, visionSource.width, visionSource.height);
   visionRevision++;
+  resetPhotoReview();
   const canvas = document.getElementById('vision-canvas');
   canvas.width = visionSource.width;
   canvas.height = visionSource.height;
@@ -83,6 +142,7 @@ async function getOrInitCocoModel() {
 
 window.onVisionModelChanged = () => {
   visionRevision++;
+  resetPhotoReview();
   document.getElementById('vision-detected-count').textContent = 'Not scanned';
   document.getElementById('vision-inference-time').textContent = '—';
   document.getElementById('vision-model-status').textContent = 'Model changed — run scan';
@@ -134,6 +194,7 @@ window.runVisionDetection = async () => {
   if (!visionSource) { status.textContent = 'Upload a photo or take a snapshot first'; return; }
   const revision = visionRevision;
   const source = visionSource;
+  resetPhotoReview();
   visionBusy = true;
   button.disabled = true;
   count.textContent = 'Scanning…';
@@ -152,20 +213,9 @@ window.runVisionDetection = async () => {
     const people = predictions.filter(p => p.class === 'person' && Number.isFinite(p.score)
       && p.score >= 0.35 && Array.isArray(p.bbox) && p.bbox.length === 4
       && p.bbox.every(Number.isFinite) && p.bbox[2] > 0 && p.bbox[3] > 0);
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(source, 0, 0);
-    ctx.lineWidth = Math.max(2, canvas.width / 500);
-    ctx.font = `${Math.max(12, Math.round(canvas.width / 65))}px sans-serif`;
-    people.forEach(p => {
-      const [x, y, w, h] = p.bbox;
-      ctx.strokeStyle = '#10b981'; ctx.strokeRect(x, y, w, h);
-      if (!document.getElementById('vision-show-labels')?.checked) return;
-      const label = `Person ${Math.round(p.score * 100)}%`;
-      const labelWidth = ctx.measureText(label).width + 8;
-      const labelY = Math.max(18, y);
-      ctx.fillStyle = '#064e3b'; ctx.fillRect(x, labelY - 18, labelWidth, 20);
-      ctx.fillStyle = '#ffffff'; ctx.fillText(label, x + 4, labelY - 3);
-    });
+    originalPeople = people.map(p=>({x: Math.max(0,Math.min(canvas.width,p.bbox[0]+p.bbox[2]/2)), y: Math.max(0,Math.min(canvas.height,p.bbox[1]+p.bbox[3]/4)), manual:false}));
+    reviewPeople = originalPeople.map(p=>({...p})); reviewReady = true;
+    renderPhotoReview();
     count.textContent = `${people.length} detected`;
     time.textContent = `${Math.round(performance.now() - started)} ms`;
     status.textContent = people.length ? 'Complete — visible detections only' : 'No people detected — people may still be missed';
