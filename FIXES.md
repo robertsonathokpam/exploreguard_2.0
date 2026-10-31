@@ -55,3 +55,8 @@ Validation for this revision: 56 legacy assertions and 32 regression/controller 
 ## Model selection after HTTP 404
 
 Gemini settings now load model IDs from Google's paginated models endpoint using the locally entered key, filter for generateContent support, and require explicit selection. The picker does not invent a replacement model or save one automatically. An edited key invalidates pending list results. Listing is not proof of generation access, free quota, or summary compatibility: users must still test generation. The model ID field has explicit visible borders and the safety stylesheet URL is versioned to refresh stale cached styling. All 34 regression/controller tests and 56 legacy assertions pass; provider responses in these new tests are mocked.
+
+## Photo review and location-specific NASA lookup
+- Added numbered AI markers and tap-to-add/remove corrections, undo, reset and explicit finish review. Original AI count remains separate. Edits, rescan, model change and new photos invalidate the review. Corrections are page-local and do not imply measured accuracy or venue totals.
+- Added NASA LHASA Today ImageServer point lookup. NoData stays unknown; errors remain unavailable; location changes discard stale replies. The public service metadata does not expose a forecast timestamp, so numerical outputs are explicitly date-unverified, with no safety classification or local probability claim.
+- Verified service metadata and a real Shillong point response (NoData). Browser rendering tests use synthetic images and mock detector outputs; no accuracy claim.

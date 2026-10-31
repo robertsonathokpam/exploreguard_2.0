@@ -9,12 +9,18 @@ let controller;
 let currentLocation = null;
 let riverController;
 let riverRevision = 0;
+let landslideRevision = 0, landslideController;
 const visible = (id, show) => { document.getElementById(id).hidden = !show; };
 const text = (id, value) => { document.getElementById(id).textContent = value; };
 const metrics = ['weather-temperature','weather-rain','weather-humidity','weather-wind','weather-pressure','terrain-elevation','terrain-slope'];
 function reset() {
   metrics.forEach(id => text(id, 'Unavailable'));
   riverRevision++; riverController?.abort();
+  landslideRevision++; landslideController?.abort();
+  text('landslide-status', 'Choose a location, then check NASA data.');
+  text('landslide-value', 'Not checked');
+  text('landslide-source', '');
+  document.getElementById('load-landslide-button').disabled = false;
   visible('river-result', false);
   text('river-status', 'Choose a location, then load its forecast.');
   document.getElementById('load-river-button').disabled = false;
@@ -138,5 +144,36 @@ window.loadRiverForecast = async () => {
   } catch (error) {
     if (request === riverRevision && locationRevision === revision) text('river-status',active.signal.aborted ? 'Forecast request timed out. Please retry.' : 'River forecast unavailable for this location or connection. No estimate has been substituted.');
   } finally { clearTimeout(timeout); if(request === riverRevision) button.disabled=false; }
+};
+window.loadLandslide = async () => {
+  if (!currentLocation) return;
+  const location = {...currentLocation}, locationVersion = revision, request = ++landslideRevision;
+  landslideController?.abort(); const active = new AbortController(); landslideController = active;
+  const button = document.getElementById('load-landslide-button'); button.disabled = true;
+  text('landslide-status', 'Checking NASA’s published grid…'); text('landslide-value', 'Loading…');
+  text('landslide-source', '');
+  const timeout = setTimeout(()=>active.abort(),20000);
+  try {
+    const service = 'https://gis.earthdata.nasa.gov/portal/rest/services/Landslides/LHASA_Hazard_Today/ImageServer';
+    const params = new URLSearchParams({f:'json',geometry:JSON.stringify({x:location.lon,y:location.lat,spatialReference:{wkid:4326}}),geometryType:'esriGeometryPoint',returnCatalogItems:'false',returnGeometry:'false'});
+    const data = await json(`${service}/identify?${params}`, active.signal);
+    if (request !== landslideRevision || locationVersion !== revision) return;
+    if (data.error) throw new Error('Provider error');
+    const raw = data.value;
+    const value = (typeof raw === 'number' || typeof raw === 'string' && raw.trim() !== '') ? Number(raw) : NaN;
+    if (!Number.isFinite(value) || value < 0 || value > 1) {
+      text('landslide-value', 'No usable value for this location');
+      text('landslide-status', 'Missing data does not mean low landslide risk.');
+    } else {
+      text('landslide-value', `NASA model output: ${value.toPrecision(3)}`);
+      text('landslide-status', 'Date unverified — do not treat this as a current local warning.');
+    }
+    text('landslide-source', `Source: NASA LHASA “Today” grid, approximately 1 km. Selected coordinates: ${location.lat.toFixed(4)}, ${location.lon.toFixed(4)}. Retrieved ${new Date().toLocaleString()}. The service does not provide a forecast timestamp; retrieval time is not forecast time.`);
+  } catch (error) {
+    if (request === landslideRevision && locationVersion === revision) {
+      text('landslide-value', 'NASA data unavailable');
+      text('landslide-status', active.signal.aborted ? 'Request timed out. Retry or open NASA’s map.' : 'Could not retrieve NASA data. Retry or open NASA’s map.');
+    }
+  } finally { clearTimeout(timeout); if (request === landslideRevision) button.disabled=false; }
 };
 reset();
